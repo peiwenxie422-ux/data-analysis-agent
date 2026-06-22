@@ -11,10 +11,15 @@ from tools import (
     outlier_detection,
 )
 from agent import explain_analysis_result
+from sql_tools import (
+    build_schema_summary,
+    run_readonly_sql,
+    SQLSafetyError,
+)
 
 
 st.set_page_config(
-    page_title="智能数据分析 Agent - V2.1",
+    page_title="智能数据分析 Agent - V3.0",
     page_icon="📊",
     layout="wide"
 )
@@ -142,8 +147,8 @@ def render_result_chart(task_type, result, group_col=None, value_col=None):
             st.line_chart(chart_data)
 
 
-st.title("📊 智能数据分析 Agent - V2.1")
-st.caption("当前版本：支持分组聚合、Top N、趋势分析、缺失值分析、异常检测，并调用 Claude 基于真实结果做业务解释。")
+st.title("📊 智能数据分析 Agent - V3.0")
+st.caption("当前版本：支持分组聚合、Top N、趋势分析、缺失值分析、异常检测、SQL 只读查询、权限控制，并调用 Claude 基于真实结果做业务解释。")
 
 uploaded_file = st.file_uploader(
     "请上传一个 CSV 或 Excel 文件",
@@ -201,6 +206,41 @@ example_questions = [
     "检测销售额是否存在异常值。",
     "分析这个数据集有没有缺失值。"
 ]
+
+
+st.subheader("6.1 SQL 只读查询工具（V3）")
+st.caption("上传的数据会被临时注册为 SQLite 表 `sales_data`。这里只允许 SELECT / WITH 只读查询，禁止 INSERT、UPDATE、DELETE、DROP、ALTER、CREATE 等写操作。")
+
+with st.expander("查看 SQL 表结构", expanded=False):
+    try:
+        st.dataframe(build_schema_summary(df), width="stretch")
+    except Exception as e:
+        st.warning(f"表结构生成失败：{e}")
+
+default_sql = """SELECT product, SUM(sales) AS sales_sum
+FROM sales_data
+GROUP BY product
+ORDER BY sales_sum DESC"""
+
+sql_query = st.text_area(
+    "请输入只读 SQL 查询",
+    value=default_sql,
+    height=130,
+    help="默认表名是 sales_data。只允许 SELECT 或 WITH 查询。"
+)
+
+if st.button("执行 SQL 只读查询"):
+    try:
+        sql_result, sql_elapsed = run_readonly_sql(df, sql_query)
+        st.success(f"SQL 查询执行成功，耗时 {sql_elapsed:.4f} 秒。")
+        st.dataframe(sql_result, width="stretch")
+
+    except SQLSafetyError as e:
+        st.error(f"SQL 权限校验失败：{e}")
+
+    except Exception as e:
+        st.error(f"SQL 查询执行失败：{e}")
+
 
 st.write("你可以尝试这些问题：")
 for q in example_questions:
