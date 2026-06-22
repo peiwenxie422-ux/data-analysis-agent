@@ -35,3 +35,20 @@
 ```text
 按地区统计销售额，并判断哪个地区表现最好。
 
+
+## Online Demo
+
+The deployed Streamlit demo is available here:
+
+https://data-analysis-agent-swmpgzbvkvkj5eyqqbmhqr.streamlit.app/
+
+## Test Questions
+
+You can upload the sample dataset `data/sample_sales.csv` and try the following questions:
+
+1. 按地区统计销售额，并判断哪个地区表现最好。
+2. 找出销售额最高的前 3 个产品。
+3. 按日期分析销售额趋势。
+4. 检测销售额是否存在异常值。
+5. 分析这个数据集有没有缺失值。
+
