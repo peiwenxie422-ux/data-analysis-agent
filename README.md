@@ -1,16 +1,23 @@
-# 智能数据分析 Agent
+# 智能数据分析 Agent - V2.1
 
-这是一个基于 Streamlit、Pandas 和 Claude API 构建的智能数据分析 Agent 原型项目。用户可以上传 CSV 或 Excel 文件，并通过自然语言提出数据分析问题。系统会识别用户意图，调用对应的数据分析工具完成真实计算，并让 Claude 基于真实计算结果生成业务解释。
+本项目是一个面向结构化业务数据的智能数据分析 Agent。用户可以上传 CSV 或 Excel 文件，并使用自然语言提出数据分析问题。系统会先读取数据、识别字段类型，再根据问题类型调用对应的数据分析工具，最后在 Streamlit 页面中展示真实计算结果、图表和 Claude 生成的业务解释。
 
-## 项目目标
+## Online Demo
 
-本项目的目标不是让大模型直接编造数据结论，而是将大模型与确定性数据分析工具结合起来：
+Streamlit 在线演示地址：
 
-- Claude 负责理解用户自然语言问题、组织分析逻辑和生成业务解释
+https://data-analysis-agent-swmpgzbvkvkj5eyqqbmhqr.streamlit.app/
+
+## 核心设计思想
+
+本项目采用“确定性计算 + 大模型解释”的架构：
+
 - Pandas 负责真实的数据计算
-- Streamlit 负责文件上传、结果展示和交互界面
+- Matplotlib 负责图表展示
+- Claude API 负责理解自然语言问题，并基于真实计算结果生成业务解释
+- Streamlit 负责文件上传、交互界面和结果展示
 
-这种设计可以降低大模型幻觉风险，使分析结果更可控、更可解释。
+这样可以避免大模型直接编造数据结论，使分析结果更加可控、可复核、可解释。
 
 ## 当前功能
 
@@ -32,19 +39,7 @@
 
 ## 支持的问题示例
 
-```text
-按地区统计销售额，并判断哪个地区表现最好。
-
-
-## Online Demo
-
-The deployed Streamlit demo is available here:
-
-https://data-analysis-agent-swmpgzbvkvkj5eyqqbmhqr.streamlit.app/
-
-## Test Questions
-
-You can upload the sample dataset `data/sample_sales.csv` and try the following questions:
+上传示例数据 `data/sample_sales.csv` 后，可以尝试以下问题：
 
 1. 按地区统计销售额，并判断哪个地区表现最好。
 2. 找出销售额最高的前 3 个产品。
@@ -52,3 +47,28 @@ You can upload the sample dataset `data/sample_sales.csv` and try the following 
 4. 检测销售额是否存在异常值。
 5. 分析这个数据集有没有缺失值。
 
+## 技术栈
+
+- Python
+- Streamlit
+- Pandas
+- Matplotlib
+- Anthropic Claude API
+- python-dotenv
+- openpyxl
+
+## 项目结构
+
+```text
+data-analysis-agent/
+├── app.py
+├── agent.py
+├── tools.py
+├── requirements.txt
+├── README.md
+├── PROJECT_EXPLANATION.md
+├── .env.example
+├── .gitignore
+├── data/
+│   └── sample_sales.csv
+└── tests/
