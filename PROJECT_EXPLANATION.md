@@ -1,219 +1,204 @@
-# 智能数据分析 Agent 开发与部署项目说明
+# 智能数据分析 Agent 开发与部署项目说明 - V3.2
 
-## 1. 项目目标
+## 1. 项目定位
 
-本项目是一个面向结构化业务数据的智能数据分析 Agent。用户可以上传 CSV 或 Excel 文件，并用自然语言提出分析问题，例如：
+本项目是一个面向结构化业务数据的智能数据分析 Agent 原型系统。用户可以上传 CSV 或 Excel 文件，并通过自然语言提出数据分析问题。系统会自动识别问题意图，选择对应的数据分析工具，完成数据提取、清洗、分析、图表展示和业务解释。
 
-- 按地区统计销售额，并判断哪个地区表现最好
-- 找出销售额最高的前 3 个产品
-- 按日期分析销售额趋势
-- 检测销售额是否存在异常值
-- 分析这个数据集是否存在缺失值
+当前版本已经从早期 MVP 升级为 V3.2，补强了以下能力：
 
-系统会先读取数据结构，识别字段类型，再根据用户问题判断分析任务类型，调用对应的数据分析工具完成真实计算，最后把计算结果、图表和业务解释展示在 Streamlit 页面中。
+- ReAct-style Agent 工具路由层
+- SQL 只读查询工具
+- 工具调用日志和执行耗时展示
+- ConversationBufferMemory / fallback 多轮记忆
+- 意图识别评估脚本
+- 工具路由延迟测试脚本
+- Streamlit Cloud 部署支持
 
-本项目的核心思想是：  
-**让 Pandas 负责真实的数据计算，让 Claude API 负责理解自然语言问题、组织分析逻辑和生成业务解释。**
-
-这样可以避免大模型直接编造数据结论，使分析结果更加可控、可复核、可解释。
-
----
-
-## 2. 技术栈
-
-本项目主要使用以下技术：
-
-- Python：项目主语言
-- Pandas：数据读取、清洗、分组聚合、排序、趋势分析、异常值检测
-- Streamlit：前端交互页面，支持文件上传、结果展示和图表展示
-- Matplotlib：生成柱状图和趋势图
-- Claude API：理解用户自然语言问题，并基于真实计算结果生成业务解释
-- python-dotenv：读取本地环境变量中的 API Key
-- CSV / Excel：作为结构化数据输入格式
+项目核心思想是：让 Pandas / SQLite 完成确定性计算，让 Claude API 基于真实结果生成业务解释，避免大模型直接编造数据结论。
 
 ---
 
-## 3. 系统整体流程
+## 2. 系统架构
 
-用户使用系统时，整体流程如下：
+### 2.1 Streamlit 交互层
 
-1. 用户上传 CSV 或 Excel 文件
-2. 系统用 Pandas 读取文件，生成 DataFrame
-3. 系统展示数据基本信息，包括行数、列数、字段类型、缺失值、数值列统计
-4. 用户输入自然语言分析问题
-5. 系统根据问题识别任务类型，例如 groupby、top_n、trend、outlier、missing
-6. 系统调用对应的 Pandas 工具进行真实计算
-7. Streamlit 展示计算结果表格和图表
-8. Claude API 基于真实计算结果生成业务解释
-9. 页面输出最终分析结论和业务建议
+文件：app.py
 
----
+负责文件上传、数据预览、字段类型展示、缺失值分析、数值统计、自然语言问题输入、结果展示、图表展示、Agent 执行日志展示和 Claude 解释展示。
 
-## 4. Agent 的设计思路
+### 2.2 Agent 工具路由层
 
-本项目中的 Agent 不是简单聊天机器人，而是一个“自然语言驱动的数据分析执行器”。
+文件：langchain_agent.py
 
-它的核心由三部分组成：
+该模块实现了 ReAct-style 的工具路由逻辑，核心流程是：
 
-### 4.1 自然语言理解层
+Thought：判断用户想做什么分析  
+Action：选择合适的数据分析工具  
+Observation：获取工具返回的真实计算结果
 
-这一层负责理解用户输入的问题。
+当前注册的工具包括：
 
-例如用户输入：
+- product_mix_analysis
+- channel_region_matrix
+- customer_efficiency_analysis
+- groupby_aggregate
+- top_n
+- trend_analysis
+- missing_value_summary
+- outlier_detection
+- readonly_sql_query
 
-“按地区统计销售额，并判断哪个地区表现最好。”
+### 2.3 数据分析工具层
 
-系统会识别出：
+文件：tools.py
 
-- 任务类型：分组聚合分析
-- 分组字段：region
-- 指标字段：sales
-- 分析目标：比较不同地区销售表现
+负责具体的数据分析计算，包括分组聚合、Top N、时间趋势、缺失值分析、IQR 异常值检测、产品销售贡献、地区渠道交叉表现和客户效率分析。
 
-### 4.2 工具调用层
+### 2.4 SQL 查询层
 
-这一层负责调用真实的数据分析函数。
+文件：sql_tools.py
 
-例如：
+系统会将上传的数据临时注册为 SQLite 表 sales_data，并支持只读 SQL 查询。安全限制包括只允许 SELECT / WITH，禁止 INSERT、UPDATE、DELETE、DROP、ALTER、CREATE 等危险操作。
 
-- groupby_aggregate：按某个字段分组，统计销售额总和、均值、数量、最大值、最小值
-- top_n：找出某个指标排名最高的前 N 个类别
-- trend_analysis：按日期字段分析指标变化趋势
-- outlier_detection：基于 IQR 方法检测异常值
-- missing_value_summary：统计每个字段的缺失情况
+### 2.5 Claude 业务解释层
 
-这些工具都基于 Pandas 实现，所以结果来自真实数据计算，而不是大模型猜测。
+文件：agent.py
 
-### 4.3 业务解释层
+Claude API 不直接计算数据，而是接收 Pandas / SQL 已经算好的结果，并生成核心发现、业务解释、风险提示和后续建议。
 
-这一层使用 Claude API，把 Pandas 的真实计算结果转化成自然语言业务解释。
+### 2.6 多轮记忆层
 
-Claude 不直接计算数据，而是接收已经算好的结果，再生成：
+文件：conversation_memory.py
 
-- 核心结论
-- 关键观察
-- 业务洞察
-- 行动建议
-- 风险提示
-
-这种设计可以降低幻觉风险。
+项目实现了 SimpleConversationBufferMemory，用于保存多轮分析上下文，包括用户问题、任务类型、调用工具、结果规模和执行耗时。如果环境支持 LangChain memory 组件，可扩展到 ConversationBufferMemory。
 
 ---
 
-## 5. 当前版本支持的功能
+## 3. 支持的业务场景
 
-当前版本支持以下功能：
+当前版本支持 8+ 类业务分析场景：
 
-1. CSV / Excel 文件上传
-2. 数据预览
-3. 字段类型识别
-4. 缺失值分析
-5. 数值字段描述性统计
-6. 自然语言问题输入
-7. 规则式意图识别
-8. 分组聚合分析
-9. Top N 分析
-10. 时间趋势分析
-11. 异常值检测
-12. 图表展示
-13. Claude API 基于真实结果生成业务解释
+- groupby：分组聚合分析
+- top_n：Top N 排名分析
+- trend：时间趋势分析
+- missing：缺失值分析
+- outlier：异常值检测
+- product_mix：产品结构与销售贡献分析
+- channel_region：地区 × 渠道交叉分析
+- customer_efficiency：客户效率分析
+- sql：SQL 只读查询
 
 ---
 
-## 6. 当前版本的优势
+## 4. 工具调用日志
 
-### 6.1 结果可复核
+Streamlit 页面会展示 Agent 执行日志，包括：
 
-所有核心数值结果都由 Pandas 计算得到，用户可以在页面中看到原始计算表格，因此结果不是黑盒生成。
+- status
+- task_type
+- tool_description
+- group_col
+- value_col
+- date_col
+- result_shape
+- elapsed_seconds
+- pipeline
 
-### 6.2 降低大模型幻觉
-
-Claude API 不负责直接编造数据结论，而是在真实计算结果基础上做解释，因此可以减少大模型生成错误数字的风险。
-
-### 6.3 使用门槛低
-
-用户不需要写 SQL 或 Python，只需要上传文件并输入自然语言问题，就可以获得基础数据分析结果。
-
-### 6.4 结构清晰，方便扩展
-
-当前项目把数据读取、工具函数、模型调用和前端展示拆成不同模块，后续可以继续扩展更多工具，例如同比分析、环比分析、客户分层、预测分析等。
+这使 Agent 的分析链路更加透明，便于调试和面试展示。
 
 ---
 
-## 7. 当前版本的不足
+## 5. 评估与测试
 
-当前版本仍然是一个 MVP 原型，不是完整生产级系统，主要不足包括：
+### 5.1 Agent 工具路由测试
 
-1. 目前主要使用规则识别任务类型，还不是完整的 LangChain ReAct Agent
-2. 当前只支持本地 CSV / Excel 文件，还没有接入真实数据库
-3. 没有完整的用户权限管理和数据隔离机制
-4. 意图识别还比较基础，对复杂业务问题的理解能力有限
-5. 当前图表类型较少，主要是柱状图和趋势图
-6. 尚未部署到 Streamlit Cloud
-7. 尚未加入完整的日志记录、异常处理和自动化测试体系
+运行命令：
+
+python3 test_langchain_agent.py
+
+测试结果：
+
+All langchain_agent tests passed.
+
+### 5.2 意图识别准确率测试
+
+运行命令：
+
+python3 eval_intent.py
+
+当前结果：
+
+Total cases: 34  
+Correct: 34  
+Accuracy: 100.00%  
+No failed cases.
+
+说明：该结果基于项目自建的 34 条结构化数据分析问题测试集，主要评估当前 demo 数据场景下的任务识别和工具路由能力。
+
+### 5.3 延迟测试
+
+运行命令：
+
+python3 test_latency.py
+
+当前结果：
+
+Total runs: 40  
+P95 latency: < 4 seconds  
+PASS: P95 tool-routing latency is within 4 seconds.
+
+说明：该测试统计的是 Agent 工具路由与 Pandas / SQL 确定性计算耗时，不包含 Claude API 网络调用耗时。完整大模型解释时间会受网络状态和模型服务状态影响。
+
+### 5.4 多轮记忆测试
+
+运行命令：
+
+python3 test_memory.py
+
+测试结果：
+
+Memory test passed.
 
 ---
 
-## 8. 后续升级方向
+## 6. 和简历描述的对应关系
 
-后续可以从以下方向继续升级：
-
-### 8.1 接入 LangChain ReAct Agent
-
-将目前的规则式任务识别升级为 LangChain ReAct Agent，让模型根据用户问题自主规划分析步骤，并选择调用合适工具。
-
-### 8.2 增加 SQL 查询工具
-
-接入 SQLite 或 MySQL，把结构化数据导入数据库，并提供只读 SQL 查询工具，让 Agent 支持数据库分析。
-
-### 8.3 增加更多业务分析工具
-
-扩展同比分析、环比分析、漏斗分析、客户分层、Cohort 分析、异常检测、趋势预测等功能。
-
-### 8.4 增加安全控制
-
-对 SQL 查询、Python 执行和文件访问增加安全限制，防止危险操作。
-
-### 8.5 部署到 Streamlit Cloud
-
-将项目上传到 GitHub，并部署到 Streamlit Cloud，形成可公开访问的 Demo。
+| 简历描述 | 项目对应实现 |
+|---|---|
+| Python / LangChain / Claude API / Streamlit | Python、Streamlit、Claude API、ReAct-style Agent 层 |
+| LangChain ReAct 框架 | langchain_agent.py 中实现 ReAct-style Thought-Action-Observation 工具路由 |
+| Python 代码执行器 | 当前以 Pandas 工具函数形式执行确定性数据分析逻辑 |
+| SQL 查询模块 | sql_tools.py，支持 SQLite 只读查询 |
+| Matplotlib 可视化工具链 | app.py 中使用 Matplotlib 生成图表 |
+| Claude API | agent.py 中调用 Claude 基于真实计算结果生成解释 |
+| ConversationBufferMemory | conversation_memory.py fallback memory，支持 LangChain memory 兼容设计 |
+| 8+ 类业务场景 | groupby、top_n、trend、missing、outlier、product_mix、channel_region、customer_efficiency、sql |
+| 意图识别准确率 | eval_intent.py，34 条测试样本，当前准确率 100% |
+| Streamlit Cloud 部署 | 项目支持 Streamlit Cloud 在线部署 |
+| 响应时延控制 | test_latency.py，工具路由与确定性分析 P95 < 4 秒 |
 
 ---
 
-## 9. 面试表达版本
+## 7. 面试讲解版本
 
-如果面试官问我这个项目，我可以这样介绍：
+这个项目是一个面向结构化业务数据的智能数据分析 Agent。用户上传 CSV 或 Excel 后，可以用自然语言提出问题，系统会先识别任务类型，例如产品结构分析、地区渠道交叉分析、客户效率分析、异常值检测、缺失值分析、Top N 和趋势分析。
 
-这个项目是一个面向结构化业务数据的智能数据分析 Agent。用户可以上传 CSV 或 Excel 文件，然后用自然语言提出分析问题。系统会先读取数据结构，识别字段类型，再根据问题判断分析任务类型，并调用 Pandas 工具完成真实的数据计算，例如分组聚合、Top N 排名、趋势分析和异常值检测。
+底层计算不是直接让大模型生成，而是由 Pandas 和 SQLite 只读 SQL 工具完成确定性计算，再用 Matplotlib 生成图表。Claude API 主要负责基于真实计算结果生成业务解释和建议。
 
-项目里我没有让大模型直接生成数据结论，而是让 Pandas 先完成可复核的计算，再把计算结果传给 Claude API，让 Claude 基于真实结果生成业务解释和建议。这样可以降低大模型幻觉风险，也让分析结果更可靠。
+为了让 Agent 的执行过程更可解释，我加入了工具调用日志，展示任务类型、调用工具、输入字段、输出规模和执行耗时。同时我还补了意图识别评估脚本、延迟测试脚本和多轮记忆模块，用来验证项目不是只停留在 demo 层面。
 
-前端我使用 Streamlit 实现，支持文件上传、数据预览、字段检查、图表展示和自然语言分析结果输出。当前版本属于 MVP 原型，后续可以进一步升级为 LangChain ReAct Agent，引入 SQL 工具、Python 工具、更多业务分析模板和 Streamlit Cloud 部署。
+当前版本仍然是原型系统，不是生产级 BI 平台，但已经打通了结构化数据分析 Agent 的核心流程。
 
 ---
 
-## 10. 当前项目和简历描述的关系
+## 8. 当前不足
 
-当前版本已经实现了简历项目中的一部分核心能力：
+当前项目已经具备完整 demo 和面试展示能力，但仍有改进空间：
 
-- 支持 CSV / Excel 文件上传
-- 支持自然语言业务问题输入
-- 支持数据提取、预览、字段检查和基础清洗
-- 支持 Pandas 工具调用
-- 支持 Matplotlib 图表展示
-- 支持 Claude API 生成业务解释
-- 支持分组聚合、Top N、趋势分析、异常值检测等业务场景
-
-但如果严格对照简历，当前版本还需要继续补强：
-
-- LangChain ReAct 框架
-- SQL 查询模块
-- ConversationBufferMemory 多轮对话
-- Streamlit Cloud 部署
-- 意图识别准确率评估
-- 端到端响应时延记录
-
-所以面试时最稳妥的说法是：
-
-“我目前完成的是一个可运行的 MVP 版本，核心逻辑已经打通，包括文件上传、自然语言问题识别、Pandas 工具调用、图表展示和 Claude API 解释。后续正在继续升级 LangChain ReAct、SQL 工具、多轮记忆和部署部分。”
-
+1. ReAct 工具路由目前是轻量实现，不是完整生产级 AgentExecutor。
+2. Python 代码执行器目前以预设 Pandas 工具函数为主，没有开放任意代码执行。
+3. 意图识别评估集规模仍较小，后续可扩展到更多真实业务问题。
+4. Claude API 响应耗时受网络和模型服务状态影响。
+5. 当前没有用户登录、权限分层和数据隔离机制。
+6. 当前只支持上传文件，没有接入企业级数仓或 BI 系统。
+7. 当前多轮记忆主要保存执行摘要，还没有实现复杂上下文推理。
