@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import time
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -446,6 +447,7 @@ if st.button("开始分析"):
         date_col = infer_date_col(df)
 
         st.info(f"Agent 识别到的任务类型：`{task_type}`")
+        analysis_start_time = time.perf_counter()
 
         result = None
         tool_description = ""
@@ -554,7 +556,33 @@ if st.button("开始分析"):
             st.warning("没有得到可展示的分析结果。")
             st.stop()
 
+        elapsed_seconds = round(time.perf_counter() - analysis_start_time, 4)
+
+        result_rows = result.shape[0] if hasattr(result, "shape") else 0
+        result_cols = result.shape[1] if hasattr(result, "shape") and len(result.shape) > 1 else 0
+
         st.success(f"已调用：{tool_description}")
+
+        with st.expander("Agent 执行日志 / Tool Call Trace", expanded=True):
+            st.json(
+                {
+                    "status": "success",
+                    "task_type": task_type,
+                    "tool_description": tool_description,
+                    "group_col": group_col,
+                    "value_col": value_col,
+                    "date_col": date_col,
+                    "result_shape": f"{result_rows} rows x {result_cols} columns",
+                    "elapsed_seconds": elapsed_seconds,
+                    "pipeline": [
+                        "intent_recognition",
+                        "tool_routing",
+                        "pandas_or_sql_execution",
+                        "chart_rendering",
+                        "claude_explanation",
+                    ],
+                }
+            )
 
     except Exception as e:
         st.error(f"分析失败：{e}")
