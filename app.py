@@ -207,7 +207,36 @@ def translate_index_and_columns(df):
     out.columns = [plot_label(x) for x in out.columns]
     return out
 
+
+def should_render_chart(task_type, result):
+    """
+    判断当前任务是否适合生成图表。
+    检测类任务如果没有实际异常/缺失，不强行画图，避免出现空图或误导性图表。
+    """
+    if result is None:
+        return False
+
+    if task_type == "missing":
+        if "缺失值数量" in result.columns:
+            return result["缺失值数量"].sum() > 0
+        return False
+
+    if task_type == "outlier":
+        if "说明" in result.columns:
+            text = " ".join(result["说明"].astype(str).tolist())
+            if "未发现" in text or "没有发现" in text:
+                return False
+        return len(result) > 1
+
+    return True
+
+
 def render_result_chart(task_type, result, group_col=None, value_col=None):
+    # 检测类任务不生成图表，避免空图或误导性图表
+    if task_type in ("missing", "outlier"):
+        st.info("当前任务属于检测/说明类任务，结果已在表格和业务解释中展示，无需生成图表。")
+        return
+
     """Render charts with English labels to avoid Matplotlib Chinese font issues."""
     if result is None or result.empty:
         st.info("当前结果为空，暂无图表。")
