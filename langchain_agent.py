@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from conversation_memory import SimpleConversationBufferMemory
+
 from tools import (
     get_column_candidates,
     groupby_aggregate,
@@ -31,6 +33,13 @@ except Exception:
     StructuredTool = None
     LANGCHAIN_AVAILABLE = False
 
+
+try:
+    from langchain.memory import ConversationBufferMemory
+    LANGCHAIN_MEMORY_AVAILABLE = True
+except Exception:
+    ConversationBufferMemory = None
+    LANGCHAIN_MEMORY_AVAILABLE = False
 
 @dataclass
 class AgentDecision:
@@ -71,8 +80,22 @@ class ReActDataAnalysisAgent:
     4. 即使本地没有安装 LangChain，也可以用 fallback 模式完成测试。
     """
 
-    def __init__(self) -> None:
+    def __init__(self, enable_memory: bool = True) -> None:
         self.tool_registry = self._build_tool_registry()
+        self.enable_memory = enable_memory
+
+        if enable_memory and LANGCHAIN_MEMORY_AVAILABLE:
+            self.memory = ConversationBufferMemory(
+                memory_key="chat_history",
+                return_messages=False,
+            )
+            self.memory_backend = "langchain.ConversationBufferMemory"
+        elif enable_memory:
+            self.memory = SimpleConversationBufferMemory(max_turns=20)
+            self.memory_backend = "SimpleConversationBufferMemory"
+        else:
+            self.memory = None
+            self.memory_backend = "disabled"
 
     def _build_tool_registry(self) -> List[Dict[str, str]]:
         return [
@@ -113,6 +136,17 @@ class ReActDataAnalysisAgent:
                 "description": "Execute SELECT/WITH-only SQL query against uploaded dataframe.",
             },
         ]
+
+    def get_memory_context(self) -> str:
+        if self.memory is None:
+            return ""
+
+        memory_vars = self.memory.load_memory_variables({})
+        return memory_vars.get("chat_history", "")
+
+    def clear_memory(self) -> None:
+        if self.memory is not None:
+            self.memory.clear()
 
     def list_tools(self) -> pd.DataFrame:
         return pd.DataFrame(self.tool_registry)
@@ -347,6 +381,18 @@ class ReActDataAnalysisAgent:
         trace.append(
             f"Observation: tool returned {len(result)} rows and {len(result.columns)} columns in {elapsed}s."
         )
+
+        if self.memory is not None:
+            memory_output = (
+                f"task_type={decision.task_type}; "
+                f"tool_name={decision.tool_name}; "
+                f"result_shape={len(result)}x{len(result.columns)}; "
+                f"elapsed_seconds={elapsed}"
+            )
+            self.memory.save_context(
+                {"input": question},
+                {"output": memory_output},
+            )
 
         return AgentRunResult(
             question=question,
