@@ -126,26 +126,26 @@ class ReActDataAnalysisAgent:
         if self._contains_any(q, ["缺失", "missing", "null", "na", "空值"]):
             return "missing"
 
-        if self._contains_any(q, ["异常", "离群", "极端值", "outlier"]):
+        if self._contains_any(q, ["异常", "离群", "极端值", "极端", "outlier"]):
             return "outlier"
 
-        if self._contains_any(q, ["趋势", "trend", "按日期", "时间变化", "变化趋势"]):
+        if self._contains_any(q, ["趋势", "trend", "按日期", "时间变化", "变化趋势", "每天", "每日", "变化"]):
             return "trend"
 
         if self._contains_any(q, ["客户效率", "客效", "人均", "客户贡献", "客户产出"]):
             return "customer_efficiency"
 
         if (
-            self._contains_any(q, ["地区", "region"])
+            self._contains_any(q, ["地区", "区域", "region"])
             and self._contains_any(q, ["渠道", "channel"])
         ) or self._contains_any(q, ["交叉", "矩阵"]):
             return "channel_region"
 
-        if self._contains_any(q, ["产品结构", "产品组合", "abc", "贡献", "品类", "销售贡献"]):
-            return "product_mix"
-
         if self._contains_any(q, ["top", "前", "最高", "排名", "最大"]):
             return "top_n"
+
+        if self._contains_any(q, ["产品结构", "产品组合", "abc", "贡献", "品类", "销售贡献"]):
+            return "product_mix"
 
         if q.strip().startswith("select") or q.strip().startswith("with"):
             return "sql"

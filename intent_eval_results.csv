@@ -1,0 +1,35 @@
+question,expected_task,predicted_task,correct
+分析产品结构和销售贡献。,product_mix,product_mix,True
+看一下各产品的销售贡献占比。,product_mix,product_mix,True
+帮我做一个产品 ABC 分类分析。,product_mix,product_mix,True
+不同品类的销售结构怎么样？,product_mix,product_mix,True
+分析地区和渠道的交叉表现。,channel_region,channel_region,True
+不同区域在线上和线下渠道的销售差异。,channel_region,channel_region,True
+帮我看 region 和 channel 的销售矩阵。,channel_region,channel_region,True
+各地区不同渠道表现如何？,channel_region,channel_region,True
+分析不同产品的客户效率。,customer_efficiency,customer_efficiency,True
+看一下各产品的人均销售额。,customer_efficiency,customer_efficiency,True
+不同产品的客户贡献和客单价怎么样？,customer_efficiency,customer_efficiency,True
+帮我比较不同品类的客效。,customer_efficiency,customer_efficiency,True
+分析这个数据集有没有缺失值。,missing,missing,True
+检查一下数据里有没有空值。,missing,missing,True
+哪些字段存在 missing value？,missing,missing,True
+帮我看一下 null 数据情况。,missing,missing,True
+检测销售额是否存在异常值。,outlier,outlier,True
+sales 里面有没有离群点？,outlier,outlier,True
+帮我找出极端销售额。,outlier,outlier,True
+检查一下收入字段是否有 outlier。,outlier,outlier,True
+找出销售额最高的前3个产品。,top_n,top_n,True
+top 5 产品有哪些？,top_n,top_n,True
+销售额排名最高的品类。,top_n,top_n,True
+按销售额排序，找出前几名。,top_n,top_n,True
+按日期分析销售额趋势。,trend,trend,True
+销售额随时间变化趋势如何？,trend,trend,True
+帮我看每天 sales 的变化。,trend,trend,True
+分析时间维度下的收入趋势。,trend,trend,True
+按地区汇总销售额。,groupby,groupby,True
+不同渠道的销售额统计。,groupby,groupby,True
+按照产品分组计算平均销售额。,groupby,groupby,True
+帮我按区域聚合销售数据。,groupby,groupby,True
+"SELECT product, SUM(sales) AS sales_sum FROM sales_data GROUP BY product",sql,sql,True
+WITH t AS (SELECT * FROM sales_data) SELECT COUNT(*) AS n FROM t,sql,sql,True
