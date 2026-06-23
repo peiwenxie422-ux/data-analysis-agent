@@ -157,3 +157,173 @@ def outlier_detection(
     result["异常下界"] = round(lower_bound, 2)
     result["异常上界"] = round(upper_bound, 2)
     return result
+
+# =========================
+# V3.1 Business Analysis Tools
+# =========================
+
+import pandas as pd
+
+
+def product_mix_analysis(df, product_col="product", value_col="sales"):
+    """
+    产品结构占比分析：
+    按产品统计销售额、销售占比、累计占比，并给出 ABC 分类。
+    """
+    if product_col not in df.columns:
+        raise ValueError(f"产品字段不存在: {product_col}")
+
+    if value_col not in df.columns:
+        raise ValueError(f"数值字段不存在: {value_col}")
+
+    temp = df[[product_col, value_col]].copy()
+    temp[value_col] = pd.to_numeric(temp[value_col], errors="coerce")
+    temp = temp.dropna(subset=[value_col])
+
+    if temp.empty:
+        raise ValueError(f"字段 {value_col} 没有可用于分析的数值。")
+
+    result = (
+        temp.groupby(product_col)[value_col]
+        .agg(["sum", "mean", "count"])
+        .reset_index()
+    )
+
+    result = result.rename(columns={
+        "sum": f"{value_col}_sum",
+        "mean": f"{value_col}_mean",
+        "count": f"{value_col}_count"
+    })
+
+    sum_col = f"{value_col}_sum"
+    total = result[sum_col].sum()
+
+    result = result.sort_values(sum_col, ascending=False).reset_index(drop=True)
+    result["sales_share_pct"] = (result[sum_col] / total * 100).round(2)
+    result["cumulative_share_pct"] = result["sales_share_pct"].cumsum().round(2)
+
+    def abc_class(x):
+        if x <= 80:
+            return "A 核心产品"
+        elif x <= 95:
+            return "B 重要产品"
+        else:
+            return "C 长尾产品"
+
+    result["abc_class"] = result["cumulative_share_pct"].apply(abc_class)
+
+    return result
+
+
+def channel_region_matrix(df, region_col="region", channel_col="channel", value_col="sales"):
+    """
+    地区 × 渠道交叉分析：
+    查看不同地区在线上/线下等渠道的销售分布。
+    """
+    for col in [region_col, channel_col, value_col]:
+        if col not in df.columns:
+            raise ValueError(f"字段不存在: {col}")
+
+    temp = df[[region_col, channel_col, value_col]].copy()
+    temp[value_col] = pd.to_numeric(temp[value_col], errors="coerce")
+    temp = temp.dropna(subset=[value_col])
+
+    if temp.empty:
+        raise ValueError(f"字段 {value_col} 没有可用于分析的数值。")
+
+    pivot = pd.pivot_table(
+        temp,
+        index=region_col,
+        columns=channel_col,
+        values=value_col,
+        aggfunc="sum",
+        fill_value=0
+    ).reset_index()
+
+    numeric_cols = [c for c in pivot.columns if c != region_col]
+    pivot["total_sales"] = pivot[numeric_cols].sum(axis=1)
+
+    grand_total = pivot["total_sales"].sum()
+    pivot["total_share_pct"] = (pivot["total_sales"] / grand_total * 100).round(2)
+
+    pivot = pivot.sort_values("total_sales", ascending=False).reset_index(drop=True)
+
+    return pivot
+
+
+def customer_efficiency_analysis(
+    df: pd.DataFrame,
+    group_col: str,
+    value_col: str,
+    customer_col: str,
+) -> pd.DataFrame:
+    """
+    客户效率分析。
+    逻辑：
+    - group_col：分析维度，例如 product
+    - value_col：业务价值字段，优先使用 sales
+    - customer_col：客户数字段，例如 customer_count
+
+    注意：
+    如果 value_col 被误识别成 customer_col，会自动优先切换到 sales，
+    避免“客户数字段既当销售额又当客户数”的错误。
+    """
+    if group_col not in df.columns:
+        raise ValueError(f"分组字段不存在：{group_col}")
+
+    if customer_col not in df.columns:
+        raise ValueError(f"客户数字段不存在：{customer_col}")
+
+    if not pd.api.types.is_numeric_dtype(df[customer_col]):
+        raise ValueError(f"客户数字段 {customer_col} 不是数值型字段。")
+
+    # 客户效率的价值字段应该优先是 sales，而不是 customer_count
+    business_value_col = value_col
+
+    if business_value_col == customer_col:
+        if "sales" in df.columns and pd.api.types.is_numeric_dtype(df["sales"]):
+            business_value_col = "sales"
+        else:
+            numeric_candidates = [
+                c for c in df.select_dtypes(include="number").columns
+                if c != customer_col
+            ]
+            if not numeric_candidates:
+                raise ValueError("没有可用于衡量客户效率的业务价值字段。")
+            business_value_col = numeric_candidates[0]
+
+    if business_value_col not in df.columns:
+        raise ValueError(f"业务价值字段不存在：{business_value_col}")
+
+    if not pd.api.types.is_numeric_dtype(df[business_value_col]):
+        raise ValueError(f"业务价值字段 {business_value_col} 不是数值型字段。")
+
+    value_sum_col = f"{business_value_col}_sum"
+    value_mean_col = f"{business_value_col}_mean"
+    customer_sum_col = f"{customer_col}_sum"
+
+    result = (
+        df.groupby(group_col)
+        .agg(
+            **{
+                value_sum_col: (business_value_col, "sum"),
+                value_mean_col: (business_value_col, "mean"),
+                customer_sum_col: (customer_col, "sum"),
+                "order_count": (customer_col, "count"),
+                f"{customer_col}_max": (customer_col, "max"),
+                f"{customer_col}_min": (customer_col, "min"),
+            }
+        )
+        .reset_index()
+    )
+
+    result["sales_per_customer"] = (
+        result[value_sum_col] / result[customer_sum_col].replace(0, pd.NA)
+    ).round(2)
+
+    result["avg_order_value"] = (
+        result[value_sum_col] / result["order_count"].replace(0, pd.NA)
+    ).round(2)
+
+    return result.sort_values("sales_per_customer", ascending=False)
+
