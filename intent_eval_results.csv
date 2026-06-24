@@ -23,6 +23,14 @@ sales 里面有没有离群点？,outlier,outlier,True
 top 5 产品有哪些？,top_n,top_n,True
 销售额排名最高的品类。,top_n,top_n,True
 按销售额排序，找出前几名。,top_n,top_n,True
+按日期分析销售额环比增长率。,period_comparison,period_comparison,True
+销售额同比增长情况怎么样？,period_comparison,period_comparison,True
+和上期相比销售额变化如何？,period_comparison,period_comparison,True
+sales mom growth 分析。,period_comparison,period_comparison,True
+预测未来3天销售额趋势。,forecast,forecast,True
+帮我预估未来销售额走势。,forecast,forecast,True
+forecast sales trend for next periods.,forecast,forecast,True
+未来几天 sales 会怎么变化？,forecast,forecast,True
 按日期分析销售额趋势。,trend,trend,True
 销售额随时间变化趋势如何？,trend,trend,True
 帮我看每天 sales 的变化。,trend,trend,True

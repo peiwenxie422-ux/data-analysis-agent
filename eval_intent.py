@@ -46,6 +46,16 @@ def build_eval_cases() -> List[IntentEvalCase]:
         IntentEvalCase("销售额排名最高的品类。", "top_n"),
         IntentEvalCase("按销售额排序，找出前几名。", "top_n"),
 
+        IntentEvalCase("按日期分析销售额环比增长率。", "period_comparison"),
+        IntentEvalCase("销售额同比增长情况怎么样？", "period_comparison"),
+        IntentEvalCase("和上期相比销售额变化如何？", "period_comparison"),
+        IntentEvalCase("sales mom growth 分析。", "period_comparison"),
+
+        IntentEvalCase("预测未来3天销售额趋势。", "forecast"),
+        IntentEvalCase("帮我预估未来销售额走势。", "forecast"),
+        IntentEvalCase("forecast sales trend for next periods.", "forecast"),
+        IntentEvalCase("未来几天 sales 会怎么变化？", "forecast"),
+
         IntentEvalCase("按日期分析销售额趋势。", "trend"),
         IntentEvalCase("销售额随时间变化趋势如何？", "trend"),
         IntentEvalCase("帮我看每天 sales 的变化。", "trend"),

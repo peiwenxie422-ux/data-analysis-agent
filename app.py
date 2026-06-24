@@ -16,6 +16,8 @@ from tools import (
     product_mix_analysis,
     channel_region_matrix,
     customer_efficiency_analysis,
+    period_comparison_analysis,
+    trend_forecast_analysis,
 )
 
 from agent import explain_analysis_result
@@ -164,6 +166,12 @@ def infer_task_type(question: str) -> str:
     if any(word in q for word in ["异常", "离群", "极端", "outlier"]):
         return "outlier"
 
+    if any(word in q for word in ["预测", "预估", "未来", "forecast", "future"]):
+        return "forecast"
+
+    if any(word in q for word in ["同比", "环比", "增长率", "较上期", "比上期", "和上期", "mom", "yoy"]):
+        return "period_comparison"
+
     if any(word in q for word in ["趋势", "变化", "按日期", "每天", "每月", "时间", "trend"]):
         return "trend"
 
@@ -284,6 +292,31 @@ def render_result_chart(task_type, result, group_col=None, value_col=None):
             ax.set_xlabel("Product")
             ax.set_ylabel("Sales per customer")
 
+        elif task_type == "period_comparison":
+            date_col = chart_df.columns[0]
+            plot_df = chart_df.sort_values(date_col)
+            if "growth_rate_pct" in plot_df.columns:
+                ax.plot(plot_df[date_col].astype(str), plot_df["growth_rate_pct"], marker="o")
+                ax.set_title("Period comparison growth rate")
+                ax.set_xlabel("Date")
+                ax.set_ylabel("Growth rate (%)")
+            else:
+                st.info("同比/环比结果中没有可绘制的增长率字段。")
+                return
+
+        elif task_type == "forecast":
+            date_col = chart_df.columns[0]
+            numeric_cols = chart_df.select_dtypes(include="number").columns.tolist()
+            if not numeric_cols:
+                st.info("预测结果中没有可绘制的数值字段。")
+                return
+            y_col = numeric_cols[0]
+            plot_df = chart_df.sort_values(date_col)
+            ax.plot(plot_df[date_col].astype(str), plot_df[y_col], marker="o")
+            ax.set_title("Sales forecast")
+            ax.set_xlabel("Date")
+            ax.set_ylabel("Sales")
+
         elif task_type == "trend":
             date_col = chart_df.columns[0]
             numeric_cols = chart_df.select_dtypes(include="number").columns.tolist()
@@ -326,7 +359,7 @@ def render_result_chart(task_type, result, group_col=None, value_col=None):
 
 st.title("📊 智能数据分析 Agent - V3.2")
 st.caption(
-    "当前版本：支持分组聚合、Top N、趋势分析、缺失值分析、异常检测、SQL 只读查询、产品结构分析、渠道地区矩阵、客户效率分析，并调用 Claude 基于真实结果生成业务解释。"
+    "当前版本：支持分组聚合、Top N、趋势分析、同比/环比分析、趋势预测、缺失值分析、异常检测、SQL 只读查询、产品结构分析、渠道地区矩阵、客户效率分析，并调用 Claude 基于真实结果生成业务解释。"
 )
 
 uploaded_file = st.file_uploader(
@@ -418,6 +451,8 @@ example_questions = [
     "按地区统计销售额，并判断哪个地区表现最好。",
     "找出销售额最高的前 3 个产品。",
     "按日期分析销售额趋势。",
+    "按日期分析销售额环比增长率。",
+    "预测未来 3 天销售额趋势。",
     "检测销售额是否存在异常值。",
     "分析这个数据集有没有缺失值。",
     "分析产品结构和销售贡献。",
@@ -521,6 +556,41 @@ if st.button("开始分析"):
 
             result = outlier_detection(df, value_col=value_col)
             tool_description = f"异常值检测工具，字段：{value_col}"
+
+        elif task_type == "period_comparison":
+            if date_col is None:
+                st.error("无法识别日期字段，不能进行同比/环比分析。")
+                st.stop()
+
+            q = user_question.lower()
+            period_type = "yoy" if any(word in q for word in ["同比", "yoy"]) else "mom"
+            freq = "ME" if any(word in q for word in ["月", "monthly", "month", "同比"]) else "D"
+
+            result = period_comparison_analysis(
+                df,
+                date_col=date_col,
+                value_col=value_col,
+                freq=freq,
+                period_type=period_type,
+            )
+            tool_description = f"同比/环比分析工具，日期字段：{date_col}，指标字段：{value_col}"
+
+        elif task_type == "forecast":
+            if date_col is None:
+                st.error("无法识别日期字段，不能进行趋势预测。")
+                st.stop()
+
+            q = user_question.lower()
+            freq = "ME" if any(word in q for word in ["月", "monthly", "month"]) else "D"
+
+            result = trend_forecast_analysis(
+                df,
+                date_col=date_col,
+                value_col=value_col,
+                periods=3,
+                freq=freq,
+            )
+            tool_description = f"趋势预测工具，日期字段：{date_col}，指标字段：{value_col}"
 
         elif task_type == "trend":
             if date_col is None:

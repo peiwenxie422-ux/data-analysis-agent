@@ -327,3 +327,102 @@ def customer_efficiency_analysis(
 
     return result.sort_values("sales_per_customer", ascending=False)
 
+def period_comparison_analysis(
+    df: pd.DataFrame,
+    date_col: str,
+    value_col: str,
+    freq: str = "D",
+    period_type: str = "mom",
+) -> pd.DataFrame:
+    """同比 / 环比分析：按时间聚合指标，并计算上期或同期增长率。"""
+    if date_col not in df.columns:
+        raise ValueError(f"日期字段不存在：{date_col}")
+    if value_col not in df.columns:
+        raise ValueError(f"数值字段不存在：{value_col}")
+    if not pd.api.types.is_numeric_dtype(df[value_col]):
+        raise ValueError(f"字段 {value_col} 不是数值型字段，不能做同比/环比分析。")
+
+    temp = df[[date_col, value_col]].copy()
+    temp[date_col] = pd.to_datetime(temp[date_col], errors="coerce")
+    temp[value_col] = pd.to_numeric(temp[value_col], errors="coerce")
+    temp = temp.dropna(subset=[date_col, value_col])
+
+    if temp.empty:
+        raise ValueError(f"字段 {date_col} 或 {value_col} 没有可用于同比/环比分析的数据。")
+
+    value_sum_col = f"{value_col}_sum"
+    result = (
+        temp.set_index(date_col)
+        .resample(freq)[value_col]
+        .sum()
+        .reset_index()
+        .rename(columns={value_col: value_sum_col})
+    )
+
+    shift_periods = 12 if period_type == "yoy" and freq in ("M", "MS", "ME") else 1
+    previous_col = f"previous_{value_sum_col}"
+    result[previous_col] = result[value_sum_col].shift(shift_periods)
+    result["change_value"] = result[value_sum_col] - result[previous_col]
+    result["growth_rate_pct"] = (
+        result["change_value"] / result[previous_col].replace(0, pd.NA) * 100
+    ).round(2)
+    result["comparison_type"] = "同比" if period_type == "yoy" else "环比"
+
+    return result
+
+
+def trend_forecast_analysis(
+    df: pd.DataFrame,
+    date_col: str,
+    value_col: str,
+    periods: int = 3,
+    freq: str = "D",
+) -> pd.DataFrame:
+    """简单趋势预测：基于历史聚合序列做线性外推，适合作为原型系统预测能力。"""
+    if date_col not in df.columns:
+        raise ValueError(f"日期字段不存在：{date_col}")
+    if value_col not in df.columns:
+        raise ValueError(f"数值字段不存在：{value_col}")
+    if not pd.api.types.is_numeric_dtype(df[value_col]):
+        raise ValueError(f"字段 {value_col} 不是数值型字段，不能做趋势预测。")
+
+    temp = df[[date_col, value_col]].copy()
+    temp[date_col] = pd.to_datetime(temp[date_col], errors="coerce")
+    temp[value_col] = pd.to_numeric(temp[value_col], errors="coerce")
+    temp = temp.dropna(subset=[date_col, value_col])
+
+    if temp.empty:
+        raise ValueError(f"字段 {date_col} 或 {value_col} 没有可用于趋势预测的数据。")
+
+    value_sum_col = f"{value_col}_sum"
+    history = (
+        temp.set_index(date_col)
+        .resample(freq)[value_col]
+        .sum()
+        .reset_index()
+        .rename(columns={value_col: value_sum_col})
+        .sort_values(date_col)
+        .reset_index(drop=True)
+    )
+
+    if history.empty:
+        raise ValueError("没有可用于趋势预测的历史序列。")
+
+    if len(history) >= 2:
+        slope = (history[value_sum_col].iloc[-1] - history[value_sum_col].iloc[0]) / (len(history) - 1)
+    else:
+        slope = 0
+
+    last_date = history[date_col].iloc[-1]
+    last_value = history[value_sum_col].iloc[-1]
+    future_dates = pd.date_range(start=last_date, periods=periods + 1, freq=freq)[1:]
+
+    forecast = pd.DataFrame({
+        date_col: future_dates,
+        value_sum_col: [round(last_value + slope * i, 2) for i in range(1, periods + 1)],
+    })
+
+    history["forecast_flag"] = "historical"
+    forecast["forecast_flag"] = "forecast"
+    return pd.concat([history, forecast], ignore_index=True)
+

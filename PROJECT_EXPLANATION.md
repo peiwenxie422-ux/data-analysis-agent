@@ -45,6 +45,8 @@ Observation：获取工具返回的真实计算结果
 - top_n
 - trend_analysis
 - missing_value_summary
+- period_comparison_analysis
+- trend_forecast_analysis
 - outlier_detection
 - readonly_sql_query
 
@@ -202,3 +204,16 @@ Memory test passed.
 5. 当前没有用户登录、权限分层和数据隔离机制。
 6. 当前只支持上传文件，没有接入企业级数仓或 BI 系统。
 7. 当前多轮记忆主要保存执行摘要，还没有实现复杂上下文推理。
+
+
+---
+
+## 当前边界与面试表述建议
+
+本项目可以表述为“基于 LangChain/ReAct 思想的轻量多工具数据分析 Agent 原型”。更严谨地说，当前主流程是 ReAct-style 工具路由，不是完整生产级 LangChain AgentExecutor。
+
+项目中的 Python 执行能力不是开放任意代码执行，而是封装好的受控 Pandas 分析工具函数，包括聚合、Top N、趋势、同比/环比、简单预测、异常检测等。这样能避免任意代码执行风险，也便于测试和部署。
+
+SQL 模块使用 SQLite 内存表，并通过只读校验限制为 SELECT / WITH 查询，避免写入、删除和结构修改操作。
+
+评估口径建议说明为：当前自建意图识别评估集覆盖 42 条结构化数据分析问题，当前测试准确率 100%；工具路由与确定性分析流程 P95 小于 4 秒。该延迟不包含 Claude API 网络调用耗时。

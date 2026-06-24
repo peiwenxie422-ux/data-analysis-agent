@@ -19,6 +19,8 @@ from tools import (
     product_mix_analysis,
     channel_region_matrix,
     customer_efficiency_analysis,
+    period_comparison_analysis,
+    trend_forecast_analysis,
 )
 
 try:
@@ -120,6 +122,14 @@ class ReActDataAnalysisAgent:
                 "description": "Return top N categories by selected numeric KPI.",
             },
             {
+                "name": "period_comparison_analysis",
+                "description": "Analyze period-over-period or year-over-year KPI growth.",
+            },
+            {
+                "name": "trend_forecast_analysis",
+                "description": "Forecast future KPI trend using simple deterministic extrapolation.",
+            },
+            {
                 "name": "trend_analysis",
                 "description": "Analyze KPI trend by date column.",
             },
@@ -162,6 +172,12 @@ class ReActDataAnalysisAgent:
 
         if self._contains_any(q, ["异常", "离群", "极端值", "极端", "outlier"]):
             return "outlier"
+
+        if self._contains_any(q, ["预测", "预估", "未来", "forecast", "future"]):
+            return "forecast"
+
+        if self._contains_any(q, ["同比", "环比", "增长率", "较上期", "比上期", "和上期", "mom", "yoy"]):
+            return "period_comparison"
 
         if self._contains_any(q, ["趋势", "trend", "按日期", "时间变化", "变化趋势", "每天", "每日", "变化"]):
             return "trend"
@@ -284,6 +300,8 @@ class ReActDataAnalysisAgent:
             "customer_efficiency": "customer_efficiency_analysis",
             "missing": "missing_value_summary",
             "outlier": "outlier_detection",
+            "period_comparison": "period_comparison_analysis",
+            "forecast": "trend_forecast_analysis",
             "trend": "trend_analysis",
             "top_n": "top_n",
             "sql": "readonly_sql_query",
@@ -346,6 +364,33 @@ class ReActDataAnalysisAgent:
             if decision.value_col is None:
                 raise ValueError("Outlier detection requires a numeric value column.")
             result = outlier_detection(df, value_col=decision.value_col)
+
+        elif decision.task_type == "period_comparison":
+            if decision.date_col is None or decision.value_col is None:
+                raise ValueError("Period comparison analysis requires date and numeric value columns.")
+            q = question.lower()
+            period_type = "yoy" if self._contains_any(q, ["同比", "yoy"]) else "mom"
+            freq = "ME" if self._contains_any(q, ["月", "monthly", "month", "同比"]) else "D"
+            result = period_comparison_analysis(
+                df,
+                date_col=decision.date_col,
+                value_col=decision.value_col,
+                freq=freq,
+                period_type=period_type,
+            )
+
+        elif decision.task_type == "forecast":
+            if decision.date_col is None or decision.value_col is None:
+                raise ValueError("Forecast analysis requires date and numeric value columns.")
+            q = question.lower()
+            freq = "ME" if self._contains_any(q, ["月", "monthly", "month"]) else "D"
+            result = trend_forecast_analysis(
+                df,
+                date_col=decision.date_col,
+                value_col=decision.value_col,
+                periods=3,
+                freq=freq,
+            )
 
         elif decision.task_type == "trend":
             if decision.date_col is None or decision.value_col is None:

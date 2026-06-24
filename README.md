@@ -1,6 +1,6 @@
 # 智能数据分析 Agent - V3.2
 
-本项目是一个面向结构化业务数据的智能数据分析 Agent 原型系统。用户可以上传 CSV 或 Excel 文件，并使用自然语言提出数据分析问题。系统会识别用户意图，选择对应的数据分析工具，执行 Pandas / SQL 确定性计算，生成 Matplotlib 图表，并调用 Claude API 基于真实计算结果生成业务解释。
+本项目是一个面向结构化业务数据的智能数据分析 Agent 原型系统。用户可以上传 CSV 或 Excel 文件，并使用自然语言提出数据分析问题。系统会识别用户意图，选择对应的数据分析工具，执行 Pandas / SQLite 确定性计算，生成 Matplotlib 图表，并调用 Claude API 基于真实计算结果生成业务解释。
 
 项目核心思想是：
 
@@ -31,7 +31,9 @@ https://data-analysis-agent-swmpgzbvkvkj5eyqqbmhqr.streamlit.app/
 7. 分组聚合分析
 8. Top N 排名分析
 9. 时间趋势分析
-10. 异常值检测
+10. 同比 / 环比分析
+11. 简单趋势预测
+12. 异常值检测
 11. SQL 只读查询
 12. 产品结构与销售贡献分析
 13. 地区 × 渠道交叉分析
@@ -164,7 +166,7 @@ P95 latency: < 4 seconds
 PASS: P95 tool-routing latency is within 4 seconds.
 ```
 
-说明：该测试主要统计 Agent 工具路由与 Pandas / SQL 确定性计算耗时，不包含 Claude API 网络调用耗时。完整大模型解释耗时会受到网络状态和模型服务状态影响。
+说明：该测试主要统计 Agent 工具路由与 Pandas / SQLite 确定性计算耗时，不包含 Claude API 网络调用耗时。完整大模型解释耗时会受到网络状态和模型服务状态影响。
 
 ---
 
@@ -248,3 +250,16 @@ python3 test_memory.py
 5. 增加更大规模的评估集
 6. 增加用户登录、数据隔离和审计日志
 7. 优化 Claude API 调用延迟与缓存机制
+
+
+---
+
+## 当前边界说明
+
+本项目是面向面试展示和原型验证的数据分析 Agent，不是企业级生产 BI 平台。
+
+当前版本采用 ReAct-style 轻量工具路由：系统会根据自然语言问题选择固定的数据分析工具，并展示 Thought / Action / Observation 风格的工具调用轨迹。项目没有默认启用完整 LangChain AgentExecutor。
+
+Python 分析能力以受控 Pandas 工具函数形式提供，不开放任意 Python exec。这样可以降低安全风险，也更适合 Streamlit Cloud 这种轻量部署环境。
+
+延迟测试中的 4 秒指标主要衡量工具路由与 Pandas / SQLite 确定性分析流程，不包含 Claude API 网络调用耗时。
