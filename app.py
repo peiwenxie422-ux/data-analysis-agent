@@ -9,6 +9,7 @@ import streamlit as st
 from tools import (
     get_column_candidates,
     groupby_aggregate,
+    safe_python_dataframe_analysis,
     top_n,
     trend_analysis,
     missing_value_summary,
@@ -146,7 +147,9 @@ def infer_top_n(question: str, default_n: int = 3) -> int:
 
 
 def infer_task_type(question: str) -> str:
-    q = question.lower()
+    q = question.strip().lower()
+    if q.startswith("python:") or q.startswith("pandas:"):
+        return "python_sandbox"
 
     if any(word in q for word in ["客户效率", "客户效益", "客户贡献", "客户产出"]):
         return "customer_efficiency"
@@ -487,7 +490,16 @@ if st.button("开始分析"):
         result = None
         tool_description = ""
 
-        if task_type == "product_mix":
+        if task_type == "python_sandbox":
+            code = user_question.split(":", 1)[1].strip()
+            result = safe_python_dataframe_analysis(df, code)
+            tool_description = "Safe Pandas sandbox tool for controlled DataFrame analysis code"
+            numeric_cols = result.select_dtypes(include="number").columns.tolist()
+            group_candidates = [col for col in result.columns if col not in numeric_cols]
+            group_col = group_candidates[0] if group_candidates else (result.columns[0] if len(result.columns) else None)
+            value_col = numeric_cols[0] if numeric_cols else (result.columns[-1] if len(result.columns) else None)
+
+        elif task_type == "product_mix":
             product_col = "product" if "product" in df.columns else group_col
             if product_col is None:
                 st.error("没有识别到产品字段，无法进行产品结构分析。")
