@@ -33,6 +33,7 @@ def build_latency_questions() -> List[str]:
         "按日期分析销售额趋势。",
         "按日期分析销售额环比增长率。",
         "预测未来3天销售额趋势。",
+        'python: result = df.groupby("product")["sales"].sum().reset_index()',
         "按地区汇总销售额。",
     ]
 

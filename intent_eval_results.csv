@@ -41,3 +41,5 @@ forecast sales trend for next periods.,forecast,forecast,True
 帮我按区域聚合销售数据。,groupby,groupby,True
 "SELECT product, SUM(sales) AS sales_sum FROM sales_data GROUP BY product",sql,sql,True
 WITH t AS (SELECT * FROM sales_data) SELECT COUNT(*) AS n FROM t,sql,sql,True
+"python: result = df.groupby(""product"")[""sales""].sum().reset_index()",python_sandbox,python_sandbox,True
+pandas: result = df.head(5),python_sandbox,python_sandbox,True

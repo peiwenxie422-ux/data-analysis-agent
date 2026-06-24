@@ -21,6 +21,7 @@ from tools import (
     customer_efficiency_analysis,
     period_comparison_analysis,
     trend_forecast_analysis,
+    safe_python_dataframe_analysis,
 )
 
 try:
@@ -142,6 +143,10 @@ class ReActDataAnalysisAgent:
                 "description": "Detect numeric outliers using IQR rule.",
             },
             {
+                "name": "safe_python_dataframe_analysis",
+                "description": "Execute controlled Pandas/Python analysis code in a restricted sandbox.",
+            },
+            {
                 "name": "readonly_sql_query",
                 "description": "Execute SELECT/WITH-only SQL query against uploaded dataframe.",
             },
@@ -196,6 +201,9 @@ class ReActDataAnalysisAgent:
 
         if self._contains_any(q, ["产品结构", "产品组合", "abc", "贡献", "品类", "销售贡献"]):
             return "product_mix"
+
+        if q.strip().startswith("python:") or q.strip().startswith("pandas:"):
+            return "python_sandbox"
 
         if q.strip().startswith("select") or q.strip().startswith("with"):
             return "sql"
@@ -305,6 +313,7 @@ class ReActDataAnalysisAgent:
             "trend": "trend_analysis",
             "top_n": "top_n",
             "sql": "readonly_sql_query",
+            "python_sandbox": "safe_python_dataframe_analysis",
             "groupby": "groupby_aggregate",
         }
 
@@ -411,6 +420,12 @@ class ReActDataAnalysisAgent:
             if run_readonly_sql is None:
                 raise RuntimeError("sql_tools.run_readonly_sql is unavailable.")
             result, _ = run_readonly_sql(df, question)
+
+        elif decision.task_type == "python_sandbox":
+            if ":" not in question:
+                raise ValueError("Safe Python analysis requires a `python:` or `pandas:` prefix.")
+            code = question.split(":", 1)[1].strip()
+            result = safe_python_dataframe_analysis(df, code)
 
         else:
             if decision.group_col is None or decision.value_col is None:

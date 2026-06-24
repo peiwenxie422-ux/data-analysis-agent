@@ -15,6 +15,7 @@ cases = [
     ("找出销售额最高的前3个产品。", "top_n"),
     ("按日期分析销售额环比增长率。", "period_comparison"),
     ("预测未来3天销售额趋势。", "forecast"),
+    ('python: result = df.groupby("product")["sales"].sum().reset_index()', "python_sandbox"),
 ]
 
 print("=== LangChain/ReAct lightweight agent smoke test ===")

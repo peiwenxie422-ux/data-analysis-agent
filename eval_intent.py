@@ -74,6 +74,14 @@ def build_eval_cases() -> List[IntentEvalCase]:
             "WITH t AS (SELECT * FROM sales_data) SELECT COUNT(*) AS n FROM t",
             "sql",
         ),
+        IntentEvalCase(
+            'python: result = df.groupby("product")["sales"].sum().reset_index()',
+            "python_sandbox",
+        ),
+        IntentEvalCase(
+            'pandas: result = df.head(5)',
+            "python_sandbox",
+        ),
     ]
 
 

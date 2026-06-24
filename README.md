@@ -263,3 +263,13 @@ python3 test_memory.py
 Python 分析能力以受控 Pandas 工具函数形式提供，不开放任意 Python exec。这样可以降低安全风险，也更适合 Streamlit Cloud 这种轻量部署环境。
 
 延迟测试中的 4 秒指标主要衡量工具路由与 Pandas / SQLite 确定性分析流程，不包含 Claude API 网络调用耗时。
+
+## Phase 2: CV Alignment Extensions
+
+This phase adds three interview-facing capabilities without replacing the stable V3.2/V3.3 deterministic analysis flow:
+
+- `python_sandbox.py`: a controlled Pandas code execution sandbox based on AST validation. It supports safe DataFrame analysis patterns and blocks imports, file access, `eval`, `exec`, unsafe builtins, and private/dunder attribute access.
+- `analysis_pipeline.py`: an explicit multi-step analysis pipeline that records data profiling, tool planning, deterministic tool execution, chart planning, and Claude explanation readiness.
+- `langchain_executor_agent.py`: an optional LangChain `AgentExecutor` backend factory. The default Streamlit workflow still uses the stable ReAct-style lightweight router, while this module demonstrates compatibility with a real LangChain AgentExecutor path when LangChain is installed.
+
+Current evaluation covers 44 structured intent cases with 100% accuracy. Tool-routing latency P95 remains within 4 seconds, excluding Claude API network time.

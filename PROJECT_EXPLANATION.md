@@ -216,4 +216,14 @@ Memory test passed.
 
 SQL 模块使用 SQLite 内存表，并通过只读校验限制为 SELECT / WITH 查询，避免写入、删除和结构修改操作。
 
-评估口径建议说明为：当前自建意图识别评估集覆盖 42 条结构化数据分析问题，当前测试准确率 100%；工具路由与确定性分析流程 P95 小于 4 秒。该延迟不包含 Claude API 网络调用耗时。
+评估口径建议说明为：当前自建意图识别评估集覆盖 44 条结构化数据分析问题，当前测试准确率 100%；工具路由与确定性分析流程 P95 小于 4 秒。该延迟不包含 Claude API 网络调用耗时。
+
+## Phase 2 面试补强说明
+
+本阶段在不破坏既有 V3.2 功能的基础上，补齐了简历中更容易被追问的三类能力：
+
+1. 安全 Python / Pandas 执行能力：通过 `python_sandbox.py` 提供受控代码执行器，使用 AST 白名单校验，不开放任意系统命令、文件读写、导入、`eval` 或 `exec`。
+2. 显式多步分析链路：通过 `analysis_pipeline.py` 记录数据画像、工具规划、工具执行、图表规划、解释准备等步骤，更贴近“自主规划分析链路”的简历表述。
+3. 可选 LangChain AgentExecutor：通过 `langchain_executor_agent.py` 提供真正 `AgentExecutor` 后端构建入口。默认线上主流程仍保留轻量 ReAct-style 路由，以保证 Streamlit Cloud 稳定性和低延迟。
+
+面试中建议这样表达：项目主流程是稳定的 ReAct-style 多工具路由；同时提供可选 LangChain AgentExecutor 后端用于展示框架兼容性。Python 执行能力是受控 Pandas sandbox，不是开放任意 Python exec。

@@ -426,3 +426,10 @@ def trend_forecast_analysis(
     forecast["forecast_flag"] = "forecast"
     return pd.concat([history, forecast], ignore_index=True)
 
+
+def safe_python_dataframe_analysis(df: pd.DataFrame, code: str) -> pd.DataFrame:
+    """Run a controlled Pandas/Python snippet through the safety sandbox."""
+    from python_sandbox import run_safe_python_analysis
+
+    return run_safe_python_analysis(df, code).result
+
