@@ -5,6 +5,7 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
+from error_utils import format_exception_for_user
 
 from tools import (
     get_column_candidates,
@@ -377,7 +378,7 @@ if uploaded_file is None:
 try:
     df = load_file(uploaded_file)
 except Exception as e:
-    st.error(f"文件读取失败：{e}")
+    st.error(format_exception_for_user(e))
     st.stop()
 
 st.success("文件上传成功！")
@@ -443,10 +444,10 @@ ORDER BY sales_sum DESC"""
             st.dataframe(sql_result, use_container_width=True)
 
         except SQLSafetyError as e:
-            st.error(f"SQL 权限校验失败：{e}")
+            st.error(format_exception_for_user(e))
 
         except Exception as e:
-            st.error(f"SQL 查询执行失败：{e}")
+            st.error(format_exception_for_user(e))
 else:
     st.warning(f"SQL 工具暂不可用：{SQL_IMPORT_ERROR}")
 
@@ -667,7 +668,7 @@ if st.button("开始分析"):
             )
 
     except Exception as e:
-        st.error(f"分析失败：{e}")
+        st.error(format_exception_for_user(e))
         st.stop()
 
     st.subheader("7. Pandas 工具真实计算结果")
