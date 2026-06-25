@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
 from error_utils import format_exception_for_user
+from data_guardrails import dataframe_memory_mb, is_large_dataframe, preview_dataframe
 
 from tools import (
     get_column_candidates,
@@ -381,16 +382,29 @@ except Exception as e:
     st.error(format_exception_for_user(e))
     st.stop()
 
-st.success("文件上传成功！")
+st.success("\u6587\u4ef6\u4e0a\u4f20\u6210\u529f\uff01")
 
-st.subheader("1. 数据基本信息")
-col1, col2, col3 = st.columns(3)
-col1.metric("行数", df.shape[0])
-col2.metric("列数", df.shape[1])
-col3.metric("总单元格数", df.shape[0] * df.shape[1])
+memory_mb = dataframe_memory_mb(df)
+total_cells = df.shape[0] * df.shape[1]
+is_large_data = is_large_dataframe(df, memory_mb=memory_mb)
 
-st.subheader("2. 数据预览")
-st.dataframe(df.head(10), use_container_width=True)
+st.subheader("1. \u6570\u636e\u57fa\u672c\u4fe1\u606f")
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("\u884c\u6570", f"{df.shape[0]:,}")
+col2.metric("\u5217\u6570", f"{df.shape[1]:,}")
+col3.metric("\u603b\u5355\u5143\u683c\u6570", f"{total_cells:,}")
+col4.metric("\u5185\u5b58\u5360\u7528", f"{memory_mb:.2f} MB")
+
+if is_large_data:
+    st.warning("\u68c0\u6d4b\u5230\u6570\u636e\u91cf\u8f83\u5927\uff1a\u9875\u9762\u9884\u89c8\u5c06\u4f7f\u7528\u56fa\u5b9a\u62bd\u6837\uff0c\u540e\u7eed\u5206\u6790\u4ecd\u57fa\u4e8e\u5b8c\u6574\u6570\u636e\u3002")
+
+st.subheader("2. \u6570\u636e\u9884\u89c8")
+preview_df, sampled_preview = preview_dataframe(df)
+if sampled_preview:
+    st.caption("\u5f53\u524d\u9884\u89c8\u663e\u793a\u56fa\u5b9a\u968f\u673a\u62bd\u6837\u7684 10 \u884c\uff0c\u907f\u514d\u5927\u6587\u4ef6\u9884\u89c8\u62d6\u6162\u9875\u9762\u3002")
+else:
+    st.caption("\u5f53\u524d\u9884\u89c8\u663e\u793a\u524d 10 \u884c\u3002")
+st.dataframe(preview_df, use_container_width=True)
 
 st.subheader("3. 字段类型信息")
 st.dataframe(dtype_summary(df), use_container_width=True)
