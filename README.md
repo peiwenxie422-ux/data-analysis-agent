@@ -1,4 +1,4 @@
-# 智能数据分析 Agent - V3.2
+# 智能数据分析 Agent - V3.3
 
 本项目是一个面向结构化业务数据的智能数据分析 Agent 原型系统。用户可以上传 CSV 或 Excel 文件，并使用自然语言提出数据分析问题。系统会识别用户意图，选择对应的数据分析工具，执行 Pandas / SQLite 确定性计算，生成 Matplotlib 图表，并调用 Claude API 基于真实计算结果生成业务解释。
 
@@ -266,10 +266,20 @@ Python 分析能力以受控 Pandas 工具函数形式提供，不开放任意 P
 
 ## Phase 2: CV Alignment Extensions
 
-This phase adds three interview-facing capabilities without replacing the stable V3.2/V3.3 deterministic analysis flow:
+This phase adds three interview-facing capabilities without replacing the stable V3.3/V3.3 deterministic analysis flow:
 
 - `python_sandbox.py`: a controlled Pandas code execution sandbox based on AST validation. It supports safe DataFrame analysis patterns and blocks imports, file access, `eval`, `exec`, unsafe builtins, and private/dunder attribute access.
 - `analysis_pipeline.py`: an explicit multi-step analysis pipeline that records data profiling, tool planning, deterministic tool execution, chart planning, and Claude explanation readiness.
 - `langchain_executor_agent.py`: an optional LangChain `AgentExecutor` backend factory. The default Streamlit workflow still uses the stable ReAct-style lightweight router, while this module demonstrates compatibility with a real LangChain AgentExecutor path when LangChain is installed.
 
 Current evaluation covers 44 structured intent cases with 100% accuracy. Tool-routing latency P95 remains within 4 seconds, excluding Claude API network time.
+
+## V3.3 稳定性升级说明
+
+在保持 V3.2 已有分析能力不变的基础上，V3.3 主要增强系统稳定性和面试可解释性：
+
+- 增加用户友好的错误提示封装，避免直接暴露底层异常。
+- 增加 DataFrame 大小与内存占用提示，大文件预览使用固定抽样，实际分析仍基于完整数据。
+- 替换 Streamlit 即将废弃的 `use_container_width=True`，改用 `width="stretch"`。
+- 保持 ReAct-style 轻量工具路由、受控 Pandas sandbox、SQLite 只读查询和 Claude 业务解释能力。
+- 线上已验证 product_mix、period_comparison、forecast、python_sandbox 等核心路径。

@@ -58,7 +58,7 @@ except Exception as e:
 
 
 st.set_page_config(
-    page_title="智能数据分析 Agent - V3.2",
+    page_title="智能数据分析 Agent - V3.3",
     page_icon="📊",
     layout="wide",
 )
@@ -362,7 +362,7 @@ def render_result_chart(task_type, result, group_col=None, value_col=None):
     except Exception as e:
         st.warning(f"图表生成失败：{e}")
 
-st.title("📊 智能数据分析 Agent - V3.2")
+st.title("📊 智能数据分析 Agent - V3.3")
 st.caption(
     "当前版本：支持分组聚合、Top N、趋势分析、同比/环比分析、趋势预测、缺失值分析、异常检测、SQL 只读查询、产品结构分析、渠道地区矩阵、客户效率分析，并调用 Claude 基于真实结果生成业务解释。"
 )
