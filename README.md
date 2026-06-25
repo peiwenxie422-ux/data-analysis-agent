@@ -145,12 +145,12 @@ data-analysis-agent/
 当前测试结果：
 
 ```text
-Total cases: 34
-Correct: 34
+Total cases: 44
+Correct: 44
 Accuracy: 100.00%
 ```
 
-说明：该准确率基于项目自建的 34 条结构化数据分析问题测试集，用于评估当前 demo 数据场景下的任务识别与工具路由能力。
+说明：该准确率基于项目自建的 44 条结构化数据分析问题测试集，用于评估当前 demo 数据场景下的任务识别与工具路由能力。
 
 ---
 
@@ -161,7 +161,7 @@ Accuracy: 100.00%
 当前测试结果：
 
 ```text
-Total runs: 40
+Total runs: 55
 P95 latency: < 4 seconds
 PASS: P95 tool-routing latency is within 4 seconds.
 ```
@@ -246,7 +246,7 @@ python3 test_memory.py
 1. 接入真实数据库和权限系统
 2. 引入更完整的 LangChain AgentExecutor
 3. 支持更复杂的多轮追问和上下文引用
-4. 增加同比、环比、预测、Cohort、漏斗分析等业务工具
+4. 继续扩展 Cohort、漏斗分析、留存分析、数据库连接等业务工具
 5. 增加更大规模的评估集
 6. 增加用户登录、数据隔离和审计日志
 7. 优化 Claude API 调用延迟与缓存机制
@@ -266,7 +266,7 @@ Python 分析能力以受控 Pandas 工具函数形式提供，不开放任意 P
 
 ## Phase 2: CV Alignment Extensions
 
-This phase adds three interview-facing capabilities without replacing the stable V3.3/V3.3 deterministic analysis flow:
+This phase adds three interview-facing capabilities without replacing the stable V3.3 deterministic analysis flow:
 
 - `python_sandbox.py`: a controlled Pandas code execution sandbox based on AST validation. It supports safe DataFrame analysis patterns and blocks imports, file access, `eval`, `exec`, unsafe builtins, and private/dunder attribute access.
 - `analysis_pipeline.py`: an explicit multi-step analysis pipeline that records data profiling, tool planning, deterministic tool execution, chart planning, and Claude explanation readiness.

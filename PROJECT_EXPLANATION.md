@@ -130,12 +130,12 @@ python3 eval_intent.py
 
 当前结果：
 
-Total cases: 34  
-Correct: 34  
+Total cases: 44  
+Correct: 44  
 Accuracy: 100.00%  
 No failed cases.
 
-说明：该结果基于项目自建的 34 条结构化数据分析问题测试集，主要评估当前 demo 数据场景下的任务识别和工具路由能力。
+说明：该结果基于项目自建的 44 条结构化数据分析问题测试集，主要评估当前 demo 数据场景下的任务识别和工具路由能力。
 
 ### 5.3 延迟测试
 
@@ -145,7 +145,7 @@ python3 test_latency.py
 
 当前结果：
 
-Total runs: 40  
+Total runs: 55  
 P95 latency: < 4 seconds  
 PASS: P95 tool-routing latency is within 4 seconds.
 
