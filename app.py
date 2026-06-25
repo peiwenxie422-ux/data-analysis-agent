@@ -404,20 +404,20 @@ if sampled_preview:
     st.caption("\u5f53\u524d\u9884\u89c8\u663e\u793a\u56fa\u5b9a\u968f\u673a\u62bd\u6837\u7684 10 \u884c\uff0c\u907f\u514d\u5927\u6587\u4ef6\u9884\u89c8\u62d6\u6162\u9875\u9762\u3002")
 else:
     st.caption("\u5f53\u524d\u9884\u89c8\u663e\u793a\u524d 10 \u884c\u3002")
-st.dataframe(preview_df, use_container_width=True)
+st.dataframe(preview_df, width="stretch")
 
 st.subheader("3. 字段类型信息")
-st.dataframe(dtype_summary(df), use_container_width=True)
+st.dataframe(dtype_summary(df), width="stretch")
 
 st.subheader("4. 缺失值分析")
-st.dataframe(missing_value_summary(df), use_container_width=True)
+st.dataframe(missing_value_summary(df), width="stretch")
 
 st.subheader("5. 数值列描述性统计")
 numeric_df = df.select_dtypes(include="number")
 if numeric_df.empty:
     st.warning("当前数据中没有数值型字段，无法生成数值统计。")
 else:
-    st.dataframe(numeric_df.describe().T, use_container_width=True)
+    st.dataframe(numeric_df.describe().T, width="stretch")
 
 st.subheader("6. 多工具自然语言分析")
 
@@ -436,7 +436,7 @@ if SQL_TOOLS_AVAILABLE:
 
     with st.expander("查看 SQL 表结构", expanded=False):
         try:
-            st.dataframe(build_schema_summary(df), use_container_width=True)
+            st.dataframe(build_schema_summary(df), width="stretch")
         except Exception as e:
             st.warning(f"表结构生成失败：{e}")
 
@@ -455,7 +455,7 @@ ORDER BY sales_sum DESC"""
         try:
             sql_result, sql_elapsed = run_readonly_sql(df, sql_query)
             st.success(f"SQL 查询执行成功，耗时 {sql_elapsed:.4f} 秒。")
-            st.dataframe(sql_result, use_container_width=True)
+            st.dataframe(sql_result, width="stretch")
 
         except SQLSafetyError as e:
             st.error(format_exception_for_user(e))
@@ -686,7 +686,7 @@ if st.button("开始分析"):
         st.stop()
 
     st.subheader("7. Pandas 工具真实计算结果")
-    st.dataframe(result, use_container_width=True)
+    st.dataframe(result, width="stretch")
 
     st.subheader("8. 图表展示")
     render_result_chart(task_type, result)
