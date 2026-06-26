@@ -516,8 +516,25 @@ if st.button("开始分析"):
 
         st.info(f"Agent 识别到的任务类型：`{task_type}`")
         st.success(f"已调用：{tool_description}")
+        visible_steps = getattr(pipeline_result, "visible_steps", pipeline_result.steps)
 
         with st.expander("Agent 执行日志 / Tool Call Trace", expanded=True):
+            st.markdown("**可展示的多步分析链路**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "step": idx,
+                            "stage": step.display_name or step.name,
+                            "status": step.status,
+                            "detail": step.detail,
+                        }
+                        for idx, step in enumerate(visible_steps, start=1)
+                    ]
+                ),
+                width="stretch",
+            )
+
             st.json(
                 {
                     "status": "success",
@@ -531,14 +548,16 @@ if st.button("开始分析"):
                     "result_shape": f"{result_rows} rows x {result_cols} columns",
                     "elapsed_seconds": elapsed_seconds,
                     "reasoning_trace": agent_output.reasoning_trace,
-                    "pipeline": [step.name for step in pipeline_result.steps],
+                    "pipeline": [step.display_name or step.name for step in visible_steps],
+                    "internal_pipeline": [step.name for step in pipeline_result.steps],
                     "pipeline_details": [
                         {
                             "name": step.name,
+                            "display_name": step.display_name or step.name,
                             "status": step.status,
                             "detail": step.detail,
                         }
-                        for step in pipeline_result.steps
+                        for step in visible_steps
                     ],
                 }
             )
