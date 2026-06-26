@@ -5,7 +5,7 @@ from typing import List
 
 import pandas as pd
 
-from langchain_agent import AgentRunResult, ReActDataAnalysisAgent
+from langchain_agent import AgentDecision, AgentRunResult, ReActDataAnalysisAgent
 from tools import get_column_candidates
 
 
@@ -21,6 +21,7 @@ class MultiStepAnalysisResult:
     question: str
     steps: List[PipelineStep]
     agent_result: AgentRunResult
+    decision: AgentDecision
     chart_recommendation: str
 
 
@@ -96,5 +97,6 @@ def run_multistep_analysis(
         question=question,
         steps=steps,
         agent_result=output,
+        decision=decision,
         chart_recommendation=chart_recommendation,
     )

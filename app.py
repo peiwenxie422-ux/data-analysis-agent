@@ -24,6 +24,7 @@ from tools import (
 )
 
 from agent import explain_analysis_result
+from analysis_pipeline import run_multistep_analysis
 
 def result_to_text(result):
     """
@@ -253,7 +254,7 @@ def render_result_chart(task_type, result, group_col=None, value_col=None):
 
     """Render charts with English labels to avoid Matplotlib Chinese font issues."""
     if result is None or result.empty:
-        st.info("当前结果为空，暂无图表。")
+        st.warning("没有得到可展示的分析结果。")
         return
 
     try:
@@ -494,170 +495,26 @@ if st.button("开始分析"):
         st.stop()
 
     try:
-        task_type = infer_task_type(user_question)
-        group_col = infer_group_col(user_question, df)
-        value_col = infer_value_col(user_question, df)
-        date_col = infer_date_col(df)
+        pipeline_result = run_multistep_analysis(user_question, df)
+        agent_output = pipeline_result.agent_result
+        decision = pipeline_result.decision
 
-        st.info(f"Agent 识别到的任务类型：`{task_type}`")
-        analysis_start_time = time.perf_counter()
-
-        result = None
-        tool_description = ""
-
-        if task_type == "python_sandbox":
-            code = user_question.split(":", 1)[1].strip()
-            result = safe_python_dataframe_analysis(df, code)
-            tool_description = "Safe Pandas sandbox tool for controlled DataFrame analysis code"
-            numeric_cols = result.select_dtypes(include="number").columns.tolist()
-            group_candidates = [col for col in result.columns if col not in numeric_cols]
-            group_col = group_candidates[0] if group_candidates else (result.columns[0] if len(result.columns) else None)
-            value_col = numeric_cols[0] if numeric_cols else (result.columns[-1] if len(result.columns) else None)
-
-        elif task_type == "product_mix":
-            product_col = "product" if "product" in df.columns else group_col
-            if product_col is None:
-                st.error("没有识别到产品字段，无法进行产品结构分析。")
-                st.stop()
-
-            result = product_mix_analysis(
-                df,
-                product_col=product_col,
-                value_col=value_col,
-            )
-            tool_description = f"产品结构分析工具，按 {product_col} 统计 {value_col}"
-
-        elif task_type == "channel_region":
-            region_col = "region" if "region" in df.columns else group_col
-            channel_col = "channel" if "channel" in df.columns else None
-
-            if channel_col is None:
-                for c in df.columns:
-                    if "channel" in c.lower() or "渠道" in c:
-                        channel_col = c
-                        break
-
-            if region_col is None or channel_col is None:
-                st.error("没有识别到地区字段或渠道字段，无法进行地区 × 渠道交叉分析。")
-                st.stop()
-
-            result = channel_region_matrix(
-                df,
-                region_col=region_col,
-                channel_col=channel_col,
-                value_col=value_col,
-            )
-            tool_description = f"地区 × 渠道交叉分析工具，按 {region_col} 和 {channel_col} 统计 {value_col}"
-
-        elif task_type == "customer_efficiency":
-            customer_col = "customer_count" if "customer_count" in df.columns else None
-
-            if customer_col is None:
-                for c in df.columns:
-                    if "customer" in c.lower() or "客户" in c:
-                        customer_col = c
-                        break
-
-            if customer_col is None:
-                st.error("没有识别到客户数字段，无法进行客户效率分析。")
-                st.stop()
-
-            analysis_group_col = "product" if "product" in df.columns else group_col
-
-            result = customer_efficiency_analysis(
-                df,
-                group_col=analysis_group_col,
-                value_col=value_col,
-                customer_col=customer_col,
-            )
-            tool_description = f"客户效率分析工具，按 {analysis_group_col} 统计销售额、客户数、人均销售额和客单价"
-
-        elif task_type == "missing":
-            result = missing_value_summary(df)
-            tool_description = "缺失值分析工具"
-
-        elif task_type == "outlier":
-            if value_col is None:
-                st.error("无法识别数值字段，不能进行异常检测。")
-                st.stop()
-
-            result = outlier_detection(df, value_col=value_col)
-            tool_description = f"异常值检测工具，字段：{value_col}"
-
-        elif task_type == "period_comparison":
-            if date_col is None:
-                st.error("无法识别日期字段，不能进行同比/环比分析。")
-                st.stop()
-
-            q = user_question.lower()
-            period_type = "yoy" if any(word in q for word in ["同比", "yoy"]) else "mom"
-            freq = "ME" if any(word in q for word in ["月", "monthly", "month", "同比"]) else "D"
-
-            result = period_comparison_analysis(
-                df,
-                date_col=date_col,
-                value_col=value_col,
-                freq=freq,
-                period_type=period_type,
-            )
-            tool_description = f"同比/环比分析工具，日期字段：{date_col}，指标字段：{value_col}"
-
-        elif task_type == "forecast":
-            if date_col is None:
-                st.error("无法识别日期字段，不能进行趋势预测。")
-                st.stop()
-
-            q = user_question.lower()
-            freq = "ME" if any(word in q for word in ["月", "monthly", "month"]) else "D"
-
-            result = trend_forecast_analysis(
-                df,
-                date_col=date_col,
-                value_col=value_col,
-                periods=3,
-                freq=freq,
-            )
-            tool_description = f"趋势预测工具，日期字段：{date_col}，指标字段：{value_col}"
-
-        elif task_type == "trend":
-            if date_col is None:
-                st.error("无法识别日期字段，不能进行趋势分析。")
-                st.stop()
-
-            result = trend_analysis(
-                df,
-                date_col=date_col,
-                value_col=value_col,
-            )
-            tool_description = f"趋势分析工具，日期字段：{date_col}，指标字段：{value_col}"
-
-        elif task_type == "top_n":
-            n = infer_top_n(user_question, default_n=3)
-            result = top_n(
-                df,
-                group_col=group_col,
-                value_col=value_col,
-                n=n,
-            )
-            tool_description = f"Top N 工具，按 {group_col} 分组，统计 {value_col}，返回前 {n} 名"
-
-        else:
-            result = groupby_aggregate(
-                df,
-                group_col=group_col,
-                value_col=value_col,
-            )
-            tool_description = f"分组聚合工具，按 {group_col} 分组，统计 {value_col}"
+        task_type = agent_output.task_type
+        result = agent_output.result
+        group_col = decision.group_col
+        value_col = decision.value_col
+        date_col = decision.date_col
+        tool_description = f"{agent_output.tool_name} via ReActDataAnalysisAgent"
+        elapsed_seconds = agent_output.elapsed_seconds
 
         if result is None or result.empty:
             st.warning("没有得到可展示的分析结果。")
             st.stop()
 
-        elapsed_seconds = round(time.perf_counter() - analysis_start_time, 4)
-
         result_rows = result.shape[0] if hasattr(result, "shape") else 0
         result_cols = result.shape[1] if hasattr(result, "shape") and len(result.shape) > 1 else 0
 
+        st.info(f"Agent 识别到的任务类型：`{task_type}`")
         st.success(f"已调用：{tool_description}")
 
         with st.expander("Agent 执行日志 / Tool Call Trace", expanded=True):
@@ -665,18 +522,23 @@ if st.button("开始分析"):
                 {
                     "status": "success",
                     "task_type": task_type,
+                    "tool_name": agent_output.tool_name,
                     "tool_description": tool_description,
+                    "agent_backend": "ReActDataAnalysisAgent",
                     "group_col": group_col,
                     "value_col": value_col,
                     "date_col": date_col,
                     "result_shape": f"{result_rows} rows x {result_cols} columns",
                     "elapsed_seconds": elapsed_seconds,
-                    "pipeline": [
-                        "intent_recognition",
-                        "tool_routing",
-                        "pandas_or_sql_execution",
-                        "chart_rendering",
-                        "claude_explanation",
+                    "reasoning_trace": agent_output.reasoning_trace,
+                    "pipeline": [step.name for step in pipeline_result.steps],
+                    "pipeline_details": [
+                        {
+                            "name": step.name,
+                            "status": step.status,
+                            "detail": step.detail,
+                        }
+                        for step in pipeline_result.steps
                     ],
                 }
             )
