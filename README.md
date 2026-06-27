@@ -1,148 +1,52 @@
-# 智能数据分析 Agent - V3.3
+# Smart Data Analysis Agent
 
-本项目是一个面向结构化业务数据的智能数据分析 Agent 原型系统。用户可以上传 CSV 或 Excel 文件，并使用自然语言提出数据分析问题。系统会识别用户意图，选择对应的数据分析工具，执行 Pandas / SQLite 确定性计算，生成 Matplotlib 图表，并调用 Claude API 基于真实计算结果生成业务解释。
-
-项目核心思想是：
-
-**确定性数据计算 + ReAct-style 工具调用 + 大模型业务解释**
-
-系统不会让大模型直接编造数据结论，而是先由 Pandas / SQLite 完成可复核计算，再由 Claude 基于真实结果生成分析解释和建议。
-
----
+A Streamlit-based AI data analysis Agent prototype with tool-based reasoning, SQL-safe querying, guardrails, memory, evaluation, and latency testing.
 
 ## Online Demo
 
-Streamlit 在线演示地址：
-
 https://data-analysis-agent-swmpgzbvkvkj5eyqqbmhqr.streamlit.app/
 
----
+## Project Overview
 
-## 核心能力
+This project demonstrates how an AI assistant can help users explore structured CSV / Excel data by combining deterministic data analysis tools with LLM-assisted business explanation.
 
-当前版本支持：
+Instead of sending all data directly to an LLM, the system separates data computation, tool routing, SQL-style querying, guardrails, memory, and natural-language explanation into different modules.
 
-1. CSV / Excel 文件上传
-2. 数据预览与字段类型识别
-3. 缺失值分析
-4. 数值字段描述性统计
-5. 自然语言业务问题输入
-6. ReAct-style Agent 工具路由
-7. 分组聚合分析
-8. Top N 排名分析
-9. 时间趋势分析
-10. 同比 / 环比分析
-11. 简单趋势预测
-12. 异常值检测
-11. SQL 只读查询
-12. 产品结构与销售贡献分析
-13. 地区 × 渠道交叉分析
-14. 客户效率分析
-15. Matplotlib 图表展示
-16. Claude API 基于真实结果生成业务解释
-17. 工具调用日志与执行耗时展示
-18. ConversationBufferMemory / fallback 多轮记忆
-19. 意图识别评估脚本
-20. 工具路由延迟测试脚本
+## Core Highlights
 
----
+- Streamlit web interface for interactive dataset upload and analysis
+- Pandas / SQLite deterministic computation for structured data analysis
+- ReAct-style Agent routing for tool selection and orchestration
+- SQL read-only safety mechanism for controlled query execution
+- Matplotlib chart generation for visual analysis
+- Conversation memory for simple multi-turn context
+- Data guardrails and sandboxing attempts for safer execution
+- Intent evaluation and latency testing for measurable demo quality
+- Unit tests covering key project modules
 
-## 技术栈
-
-* Python
-* Streamlit
-* Pandas
-* Matplotlib
-* SQLite
-* Anthropic Claude API
-* LangChain-style tool routing
-* ConversationBufferMemory / fallback memory
-* python-dotenv
-* openpyxl
-
----
-
-## 项目结构
+## Architecture
 
 ```text
-data-analysis-agent/
-├── app.py                         # Streamlit 前端入口
-├── agent.py                       # Claude API 解释模块
-├── tools.py                       # Pandas 数据分析工具
-├── sql_tools.py                   # SQL 只读查询与安全校验
-├── langchain_agent.py             # ReAct-style Agent 工具路由层
-├── conversation_memory.py         # 多轮对话记忆 fallback 实现
-├── eval_intent.py                 # 意图识别准确率评估
-├── test_latency.py                # 工具路由延迟测试
-├── test_langchain_agent.py        # Agent smoke test
-├── test_memory.py                 # 多轮记忆测试
-├── intent_eval_results.csv        # 意图识别评估结果
-├── latency_test_results.csv       # 延迟测试结果
-├── requirements.txt
-├── README.md
-├── PROJECT_EXPLANATION.md
-├── .env.example
-└── data/
-    └── sample_sales.csv
+User question / uploaded dataset
+↓
+Streamlit UI
+↓
+Intent recognition / Agent router
+↓
+Pandas tools / SQL tools / analysis pipeline
+↓
+Guardrails / memory / error handling
+↓
+LLM-assisted business explanation
+↓
+User-facing result
 ```
 
----
+## Evaluation Results
 
-## Agent 工作流程
+### Intent Recognition Evaluation
 
-用户输入自然语言问题后，系统执行以下流程：
-
-1. 读取上传数据并识别字段类型
-2. 识别用户问题的任务类型
-3. 根据任务类型选择分析工具
-4. 调用 Pandas 或 SQL 工具完成真实计算
-5. 记录工具调用日志、输入字段、输出规模和执行耗时
-6. 使用 Matplotlib 生成图表
-7. 将真实计算结果传给 Claude API
-8. 由 Claude 生成业务解释和建议
-9. 将表格、图表、执行日志和解释展示在 Streamlit 页面中
-
----
-
-## 已支持的业务分析场景
-
-示例数据 `data/sample_sales.csv` 支持以下问题：
-
-```text
-分析产品结构和销售贡献。
-分析地区和渠道的交叉表现。
-分析不同产品的客户效率。
-检测销售额是否存在异常值。
-分析这个数据集有没有缺失值。
-找出销售额最高的前3个产品。
-按日期分析销售额趋势。
-按地区汇总销售额。
-```
-
----
-
-## SQL 安全机制
-
-项目提供 SQL 只读查询工具，上传数据会被临时注册为 SQLite 表 `sales_data`。
-
-安全限制：
-
-* 只允许 `SELECT` / `WITH` 查询
-* 禁止 `INSERT`
-* 禁止 `UPDATE`
-* 禁止 `DELETE`
-* 禁止 `DROP`
-* 禁止 `ALTER`
-* 禁止 `CREATE`
-* 禁止其他破坏性 SQL 操作
-
----
-
-## 意图识别评估
-
-项目提供 `eval_intent.py`，用于评估 Agent 对自然语言问题的任务识别能力。
-
-当前测试结果：
+The project includes `eval_intent.py` for evaluating task recognition and tool-routing behavior.
 
 ```text
 Total cases: 44
@@ -150,15 +54,11 @@ Correct: 44
 Accuracy: 100.00%
 ```
 
-说明：该准确率基于项目自建的 44 条结构化数据分析问题测试集，用于评估当前 demo 数据场景下的任务识别与工具路由能力。
+This result is based on the project-specific demo evaluation set, not a general benchmark.
 
----
+### Latency Test
 
-## 延迟测试
-
-项目提供 `test_latency.py`，用于测试 Agent 工具路由与确定性 Pandas 分析流程的耗时。
-
-当前测试结果：
+The project includes latency testing for tool routing and deterministic Pandas / SQLite analysis.
 
 ```text
 Total runs: 55
@@ -166,120 +66,47 @@ P95 latency: < 4 seconds
 PASS: P95 tool-routing latency is within 4 seconds.
 ```
 
-说明：该测试主要统计 Agent 工具路由与 Pandas / SQLite 确定性计算耗时，不包含 Claude API 网络调用耗时。完整大模型解释耗时会受到网络状态和模型服务状态影响。
+The latency result focuses on tool routing and deterministic analysis, excluding external LLM network latency.
 
----
-
-## 多轮记忆
-
-项目提供 `conversation_memory.py`，实现轻量 fallback memory：
-
-* 记录用户问题
-* 记录 Agent 识别出的任务类型
-* 记录调用工具
-* 记录结果规模
-* 记录执行耗时
-
-如果运行环境安装了 LangChain memory 组件，系统可以使用 `ConversationBufferMemory`；否则使用 `SimpleConversationBufferMemory` 保证项目可运行。
-
----
-
-## 本地运行方式
-
-安装依赖：
-
-```bash
-python3 -m pip install -r requirements.txt
-```
-
-配置环境变量：
-
-```bash
-cp .env.example .env
-```
-
-在 `.env` 中填写 Claude API Key：
+## Project Structure
 
 ```text
-ANTHROPIC_API_KEY=your_api_key_here
+app.py                         Streamlit frontend
+agent.py                       LLM-assisted explanation layer
+tools.py                       Pandas analysis tools
+sql_tools.py                   SQL-style query and safety logic
+langchain_agent.py             Agent-style routing logic
+langchain_executor_agent.py    Tool execution workflow
+analysis_pipeline.py           Reusable analysis pipeline
+conversation_memory.py         Simple conversation memory
+data_guardrails.py             Data validation and guardrails
+python_sandbox.py              Controlled Python execution attempt
+eval_intent.py                 Intent evaluation script
+test_*.py                      Unit tests
+data/sample_sales.csv          Sample dataset
 ```
 
-启动应用：
+## Local Setup
 
 ```bash
-python3 -m streamlit run app.py
+git clone https://github.com/peiwenxie422-ux/data-analysis-agent.git
+cd data-analysis-agent
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
----
+## Safety Notes
 
-## 测试命令
+- API keys should be stored in environment variables, not hardcoded in source files
+- Use sample or public datasets for demonstration
+- LLM outputs should be treated as assisted explanations and reviewed by humans
+- Sandbox and guardrail modules are prototype-level safety components, not production-grade security guarantees
 
-```bash
-python3 -m py_compile app.py tools.py sql_tools.py langchain_agent.py conversation_memory.py eval_intent.py test_latency.py test_memory.py test_langchain_agent.py
+## Limitations
 
-python3 test_langchain_agent.py
-python3 eval_intent.py
-python3 test_latency.py
-python3 test_memory.py
-```
-
----
-
-## 项目特点
-
-本项目把数据分析流程拆成可控模块：
-
-* Pandas / SQL 负责真实计算
-* Matplotlib 负责可视化
-* Agent 负责意图识别和工具路由
-* Claude 负责业务解释
-* Streamlit 负责交互展示
-
-这样可以降低大模型幻觉风险，并提高数据分析结果的可复核性。
-
----
-
-## 当前不足与后续改进
-
-当前项目仍是面向面试和学习场景的原型系统，不是生产级数据分析平台。后续可继续优化：
-
-1. 接入真实数据库和权限系统
-2. 引入更完整的 LangChain AgentExecutor
-3. 支持更复杂的多轮追问和上下文引用
-4. 继续扩展 Cohort、漏斗分析、留存分析、数据库连接等业务工具
-5. 增加更大规模的评估集
-6. 增加用户登录、数据隔离和审计日志
-7. 优化 Claude API 调用延迟与缓存机制
-
-
----
-
-## 当前边界说明
-
-本项目是面向面试展示和原型验证的数据分析 Agent，不是企业级生产 BI 平台。
-
-当前版本采用 ReAct-style 轻量工具路由：系统会根据自然语言问题选择固定的数据分析工具，并展示 Thought / Action / Observation 风格的工具调用轨迹。项目没有默认启用完整 LangChain AgentExecutor。
-
-Python 分析能力以受控 Pandas 工具函数形式提供，不开放任意 Python exec。这样可以降低安全风险，也更适合 Streamlit Cloud 这种轻量部署环境。
-
-延迟测试中的 4 秒指标主要衡量工具路由与 Pandas / SQLite 确定性分析流程，不包含 Claude API 网络调用耗时。
-
-## Phase 2: CV Alignment Extensions
-
-This phase adds three interview-facing capabilities without replacing the stable V3.3 deterministic analysis flow:
-
-- `python_sandbox.py`: a controlled Pandas code execution sandbox based on AST validation. It supports safe DataFrame analysis patterns and blocks imports, file access, `eval`, `exec`, unsafe builtins, and private/dunder attribute access.
-- `analysis_pipeline.py`: an explicit multi-step analysis pipeline that records data profiling, tool planning, deterministic tool execution, chart planning, and Claude explanation readiness.
-- `langchain_executor_agent.py`: an optional LangChain `AgentExecutor` backend factory. The default Streamlit workflow still uses the stable ReAct-style lightweight router, while this module demonstrates compatibility with a real LangChain AgentExecutor path when LangChain is installed.
-
-Current evaluation covers 44 structured intent cases with 100% accuracy. Tool-routing latency P95 remains within 4 seconds, excluding Claude API network time.
-
-## V3.3 稳定性升级说明
-
-在保持 V3.2 已有分析能力不变的基础上，V3.3 主要增强系统稳定性和面试可解释性：
-
-- 增加用户友好的错误提示封装，避免直接暴露底层异常。
-- 增加 DataFrame 大小与内存占用提示，大文件预览使用固定抽样，实际分析仍基于完整数据。
-- 替换 Streamlit 即将废弃的 `use_container_width=True`，改用 `width="stretch"`。
-- 保持 ReAct-style 轻量工具路由、受控 Pandas sandbox、SQLite 只读查询和 Claude 业务解释能力。
-- 线上已验证 product_mix、period_comparison、forecast、python_sandbox 等核心路径。
+- This is a portfolio prototype, not a production enterprise analytics platform
+- It should not be used with confidential customer data without further security review
+- The evaluation set is project-specific and should not be interpreted as a general benchmark
+- Production use would require authentication, monitoring, stronger sandboxing, logging, cost control, and deployment hardening
